@@ -1,0 +1,534 @@
+// Edward Davis 9937240
+// Last modified: 
+// 
+// Compiled using Visual Studio 2017
+
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <vector>
+#include <iterator>
+#include <sstream>
+#include <fstream>
+#include <memory>
+
+std::string remove_zero_trail(std::string string_number)
+{
+	// uses stringstream to remove zeros at the end of a string double
+	std::ostringstream reversed_number_stream;
+	bool had_non_zero{ false };
+	for (size_t i{ string_number.length() - 1 }; i > 0; i--) {
+		if (string_number[i] != '0' && string_number[i] != '.') had_non_zero = true;
+		if (had_non_zero) reversed_number_stream << string_number[i];
+		if (string_number[i] == '.') had_non_zero = true;
+	}
+	reversed_number_stream << string_number[0];
+	std::string reversed_number{ reversed_number_stream.str() };
+	std::string corrected_string_number{ reversed_number.rbegin(), reversed_number.rend() };
+	return corrected_string_number;
+}
+class measurement {
+public:
+	virtual ~measurement() { std::cout << "called measurement destructor..." << std::endl; }
+	virtual void summary() const = 0;
+	virtual void print_data() = 0;
+	virtual size_t count() const = 0;
+	virtual std::string get_variable_name() const = 0;
+	virtual std::vector<std::string> get_string_data() const = 0;
+	virtual std::vector<double> get_double_data() const = 0;
+	virtual std::string get_measurement_type() const = 0;
+
+};
+
+class labelled_data : public measurement {
+public:
+	~labelled_data() { std::cout << "called labelled_data constructor..." << std::endl; }
+	virtual std::string mode() = 0;
+	virtual std::vector<double> get_double_data() const { return {}; }
+
+	//virtual std::vector<std::string> unique_labels() = 0;
+};
+class nominal_data : public labelled_data {
+private:
+	std::vector<std::string> data;
+	std::string variable_name;
+public:
+	nominal_data() = default;
+	nominal_data(const std::string name_of_variable, const std::vector<std::string> variable_data)
+	{
+		variable_name = name_of_variable;
+		data = variable_data;
+	}
+	~nominal_data() { std::cout << "called nominal_data destructor..." << std::endl; }
+
+	void print_data()
+	{
+		std::cout << "Variable: " << variable_name << std::endl;
+		std::vector<std::string>::iterator data_start{ data.begin() };
+		std::vector<std::string>::iterator data_end{ data.end() };
+		std::vector<std::string>::iterator data_iterator;
+		int i{ 0 };
+		for (data_iterator = data_start; data_iterator < data_end; ++data_iterator)
+		{
+			std::cout << "  (" << i << ") " << *data_iterator << std::endl;
+			i++;
+		}
+		std::cout << std::endl;
+	}
+	size_t get_length() const { return data.size(); }
+	std::string get_variable_name() const { return variable_name; }
+	std::string& operator[](size_t index)
+	{
+		if (index < 0 || index >= data.size()) {
+			std::cerr << "ERROR: element out of bounds" << std::endl;
+			throw("out of bounds");
+		}
+		return data[index];
+	}
+	void summary() const { std::cout << "nominal data summary" << std::endl; }
+	std::string get_measurement_type() const { return "nominal"; }
+	std::string get_variable_name() { return variable_name; }
+	void add_variable(std::string variable_name, std::vector<std::string> variable_data)
+	{
+
+		std::cout << "add a variable..." << std::endl;
+	}
+	size_t count() const { return data.size(); }
+	//std::vector<std::string> unique_labels()
+	//{
+	//	std::cout << "unique_labels" << std::endl;
+	//}
+	std::string mode() {
+		std::cout << "mode avg" << std::endl;
+
+		return 0;
+	}
+	std::vector<std::string> get_string_data() const { return data; }
+};
+class numerical_data : public measurement {
+private:
+	std::vector<double> data{};
+	std::string variable_name{};
+public:
+	numerical_data() = default;
+	template <class c_type> numerical_data(const std::string name_of_variable, const std::vector<c_type> variable_data)
+	{
+		variable_name = name_of_variable;
+		// if data given as vector<int> then make sure it is converted to double
+		std::vector<double> double_variable_data;
+		for (size_t i{ 0 }; i < variable_data.size(); i++) double_variable_data.push_back(static_cast<double>(variable_data[i]));
+		data = double_variable_data;
+	}
+	~numerical_data() { std::cout << "called numerical_data destructor..." << std::endl; }
+
+	size_t count() const { return data.size(); }
+	void print_data()
+	{
+		std::cout << "Variable: " << variable_name << std::endl;
+		typename std::vector<double>::iterator data_start{ data.begin() };
+		typename std::vector<double>::iterator data_end{ data.end() };
+		typename std::vector<double>::iterator data_iterator;
+		int i{ 0 };
+		size_t largest_entry_number{ data.size() };
+		std::string largest_entry_number_string{ std::to_string(largest_entry_number) };
+		size_t length_of_longest_entry_number{ largest_entry_number_string.length() };
+		for (data_iterator = data_start; data_iterator < data_end; ++data_iterator)
+		{
+			std::cout << "  (" << i << ") ";
+			size_t legnth_of_entry{ std::to_string(i).length() };
+			size_t extra_space{ length_of_longest_entry_number - legnth_of_entry };
+			for (size_t i{ 0 }; i < extra_space; i++) std::cout << " ";
+			std::cout << *data_iterator << std::endl;
+			i++;
+		}
+		std::cout << std::endl;
+	}
+	size_t get_length() const { return data.size(); }
+	std::string get_variable_name() const { return variable_name; }
+	std::string get_measurement_type() const { return "numerical"; }
+	double& operator[](size_t index)
+	{
+		if (index < 0 || index >= data.size()) {
+			std::cerr << "ERROR: element out of bounds" << std::endl;
+			throw("out of bounds");
+		}
+		return data[index];
+	}
+	void summary() const
+	{
+		std::cout << "numerical data summary" << std::endl;
+	}
+	std::vector<std::string> get_string_data() const {
+		std::vector<std::string> string_data;
+		for (size_t i{ 0 }; i < data.size(); i++) {
+			string_data.push_back(remove_zero_trail(std::to_string(data[i])));
+		}
+		return string_data;
+	}
+	std::vector<double> get_double_data() const { return data; }
+};
+class experiment {
+	friend std::ostream& operator<<(std::ostream& os, const experiment& mat);
+private:
+	std::unique_ptr<measurement*[]> experiment_data{ nullptr };
+	int number_of_variables{ 0 };
+	int number_of_rows{ 0 };
+	std::string experiment_title{};
+public:
+	experiment() = default;
+	experiment(const int variable_number, const std::string title)
+	{
+		number_of_variables = variable_number;
+		experiment_title = title;
+		experiment_data = std::make_unique<measurement*[]>(number_of_variables);
+	}
+	experiment(nominal_data variable, std::string title_of_experiment)
+	{
+		number_of_rows = variable.get_length();
+		number_of_variables = 1;
+		experiment_title = title_of_experiment;
+		experiment_data = std::make_unique<measurement* []>(number_of_variables);
+		experiment_data[0] = new nominal_data(variable.get_variable_name(), variable.get_string_data());
+	}
+	//// Second parameterised constructor to use data from saved .txt files
+	//experiment(std::vector<std::string> lines_from_text_file)
+	//{
+
+	//}
+	~experiment()
+	{
+		std::cout << "called experiment destructor..." << std::endl;
+		for (int i{ 0 }; i < number_of_variables; i++) {
+			delete experiment_data[i];
+		}
+	}
+	void set_title(std::string title) { experiment_title = title; }
+	std::string get_title() const { return experiment_title; }
+	int get_number_of_variables() const { return number_of_variables; }
+
+	//template <class c_type> void add_variable(c_type variable)
+	//{
+	//	if (variable.get_length() != number_of_rows) {
+	//		std::cerr << "ERROR: Attempted to add a varaible whose length does not match the length of the experiment" << std::endl;
+	//		return;
+	//	}
+	//	// if allowed add another variable to experiment
+	//	number_of_variables++;
+	//	measurement** new_experiment_data = new measurement * [number_of_variables];
+	//	for (int i{ 0 }; i < number_of_variables - 2; i++) {
+	//		if (experiment_data[i]->get_measurement_type() == "nominal") {
+	//			new_experiment_data[i] = new nominal_data(experiment_data[i]->get_variable_name(), experiment_data[i]->get_string_data());
+	//		} else if (experiment_data[i]->get_measurement_type() == "numerical") {
+	//			new_experiment_data[i] = new numerical_data(experiment_data[i]->get_variable_name(), experiment_data[i]->get_double_data());
+	//		}
+	//	}		
+	//	// add new variable to experiment data
+	//	experiment_data[number_of_variables - 1] = new c_type(variable.get_variable_name(), variable.get_string_data());
+	//}
+
+	//void add_variable(nominal_data variable)
+	//{
+		//if (variable.get_length() != number_of_rows) {
+		//	std::cerr << "ERROR: Attempted to add a varaible whose length does not match the length of the experiment" << std::endl;
+		//	return;
+		//}
+	//	// if allowed add another variable to experiment
+	//	number_of_variables++;
+	//	std::unique_ptr<measurement*[]> new_experiment_data = std::make_unique<measurement*[]>(number_of_variables);
+	//	for (int i{ 0 }; i < number_of_variables - 2; i++) {
+	//		if (experiment_data[i]->get_measurement_type() == "nominal") {
+	//			
+	//			std::cout << experiment_data[i]->get_variable_name() << std::endl;
+	//			new_experiment_data[i] = new nominal_data(experiment_data[i]->get_variable_name(), experiment_data[i]->get_string_data());
+	//		}
+	//		else if (experiment_data[i]->get_measurement_type() == "numerical") {
+	//			new_experiment_data[i] = new numerical_data(experiment_data[i]->get_variable_name(), experiment_data[i]->get_double_data());
+	//		}
+	//	}
+	//	// add new variable to experiment data
+	//	new_experiment_data[number_of_variables - 1] = new nominal_data(variable.get_variable_name(), variable.get_string_data());
+
+	//	// delete old data
+	//	for (int i{ 0 }; i < number_of_variables - 1; i++) {
+	//		delete experiment_data[i];
+	//	}
+	//	experiment_data = std::make_unique<measurement* []>(number_of_variables);
+	//	for (int i{ 0 }; i < number_of_variables; i++) {
+	//		std::cout << new_experiment_data[i]->get_variable_name() << std::endl;
+	//		experiment_data[i] = new_experiment_data[i];
+	//	}
+	//}
+
+	void add_variable(nominal_data variable)
+	{
+		if (variable.get_length() != number_of_rows) {
+			std::cerr << "ERROR: Attempted to add a varaible whose length does not match the length of the experiment" << std::endl;
+			return;
+		}
+		std::cout << "Adding " << variable.get_variable_name() << std::endl;
+
+		int old_size{ number_of_variables };
+		int new_size{ number_of_variables + 1 };
+
+		// keep current variables in temporary array
+		std::unique_ptr<measurement* []> current_variables = std::make_unique<measurement* []>(old_size);
+		for (int i{ 0 }; i < old_size; i++) {
+			current_variables[i] = experiment_data[i];
+			std::cout << "current" << std::endl;
+			current_variables[i]->print_data();
+		}
+		// delete old array
+		for (int i{ 0 }; i < old_size; i++) {
+			delete experiment_data[i];
+		}
+
+		// copy data to new array
+		std::unique_ptr<measurement* []> experiment_data = std::make_unique<measurement* []>(new_size);
+		for (int i{ 0 }; i < old_size; i++) {
+			std::cout << "copying current" << std::endl;
+			experiment_data[i] = current_variables[i];
+			//experiment_data[i]->print_data();
+		}
+		// add new variable
+		experiment_data[number_of_variables - 1] = new nominal_data(variable.get_variable_name(), variable.get_string_data());
+		std::cout << "Copy didn't crash" << std::endl;
+
+		// check info copied correctly
+		for (int i{ 0 }; i < new_size; i++) {
+			experiment_data[i]->print_data();
+		}
+		//variable.print_data();
+
+		// delete temp array
+		for (int i{ 0 }; i < old_size; i++) {
+			delete current_variables[i];
+		}
+
+	}
+
+	void save_experiment() const
+	{
+		// save file
+		std::ofstream outfile(experiment_title + ".txt");
+		// add line for experiment dimesions
+		int number_of_columns{ this->get_number_of_variables() };
+		outfile << "[cols (" << number_of_columns << ")]" << std::endl;
+		// enter the data
+		outfile << *this;
+		outfile.close();
+
+		// get current list of available experiments
+		std::vector<std::string> available_experiments;
+		std::ifstream current_saved_experiments("list_of_experimentfiles.txt");
+		if (!current_saved_experiments.good()) {
+			std::cerr << "ERROR: File could not be opened" << std::endl;
+			std::cin.get();
+			exit(1);
+		}
+		std::string filename;
+		while (getline(current_saved_experiments, filename))
+		{
+			if (filename != experiment_title) available_experiments.push_back(filename);
+		}
+		current_saved_experiments.close();
+		// add to the list of available experiments and rewrite file
+		available_experiments.push_back(experiment_title);
+		std::ofstream new_saved_experiments("list_of_experimentfiles.txt");
+		for (size_t i{ 0 }; i < available_experiments.size(); i++) new_saved_experiments << available_experiments[i] << std::endl;
+		new_saved_experiments.close();
+		std::cout << "saved experiment: " << experiment_title << " as " << experiment_title << ".txt" << std::endl;
+	}
+	measurement& operator[](int index)
+	{
+		if (index < 0 || index >= number_of_variables) {
+			std::cerr << "ERROR: element out of bounds" << std::endl;
+			throw("out of bounds");
+		}
+		return *experiment_data[index];
+	}
+};
+std::ostream& operator<<(std::ostream& os, const experiment& exp)
+{
+	// print experiment name
+	std::cout <<  exp.get_title() << std::endl;
+
+	// print out variable names as headings and get the longest length inputs for later formatting
+	size_t largest_count{ 0 };
+	for (int i{ 0 }; i < exp.number_of_variables; i++) {
+		// get the number of inputs and allow space for entry numbers
+		std::vector<std::string> column_data{ exp.experiment_data[i]->get_string_data() };
+		if (i == 0) largest_count = column_data.size();
+		else if (column_data.size() > largest_count) largest_count = column_data.size();
+
+	}
+
+	size_t longest_entry_number{ std::to_string(largest_count).length() + 3 };
+	for (size_t k{ 0 }; k < longest_entry_number; k++) os << " ";
+
+	std::vector<size_t> longest_lengths_of_inputs;
+	for (int i{ 0 }; i < exp.number_of_variables; i++) {
+		std::string variable_name{ exp.experiment_data[i]->get_variable_name() };
+		os << variable_name;
+
+		// get the legnth of the longest input for each column
+		std::vector<std::string> column_data{ exp.experiment_data[i]->get_string_data() };
+		size_t longest_length{ variable_name.length() };
+		for (size_t j{ 0 }; j < column_data.size(); j++) {
+			size_t current_length{ column_data[j].length() };
+			if (current_length > longest_length) longest_length = current_length;
+		}
+		// make sure columns are divided so add 2 spaces
+		longest_lengths_of_inputs.push_back(longest_length + 2);
+		size_t space_to_fill{ longest_length + 2 - variable_name.length() };
+		for (size_t k{ 0 }; k < space_to_fill; k++) os << " ";
+
+	}
+	// print data under headings
+	os << std::endl;
+	for (size_t i{ 0 }; i < exp.experiment_data[0]->count(); i++) {
+		for (int j{ 0 }; j < exp.number_of_variables; j++) {
+			if (j == 0) {
+				size_t space_for_entry_numbers{ longest_entry_number - std::to_string(i).length() - 2 };
+				os << "(" << i << ")";
+				for (size_t k{ 0 }; k < space_for_entry_numbers; k++) os << " ";
+			}
+
+			std::string current_value{ exp.experiment_data[j]->get_string_data()[i] };
+			os << current_value;
+
+			// make sure formatting is okay between columns
+			std::string column{ exp.experiment_data[j]->get_variable_name() };
+
+			size_t space_to_fill{ longest_lengths_of_inputs[j] - current_value.length() };
+			for (size_t k{ 0 }; k < space_to_fill; k++) os << " ";
+		}
+		os << std::endl;
+	}
+	return os;
+}
+void print_file(std::string filename)
+{
+	std::ifstream file(filename);
+
+	if (!file.good()) {
+		std::cerr << "ERROR: File '" << filename << "' could not be opened" << std::endl;
+		std::cin.get();
+		exit(1);
+	}
+	std::string line;
+	while (getline(file, line)) std::cout << line << std::endl;
+	file.close();
+}
+bool is_trigger_used(std::string input, std::string trigger_word)
+{
+	if (trigger_word.length() >= input.length()) return false;
+	bool trigger_used{ true };
+	for (size_t i{ 0 }; i < input.length(); i++) {
+		if (input[i] != trigger_word[i]) {
+			if (i != trigger_word.length()) trigger_used = false; break;
+		}
+	}
+	return trigger_used;
+}
+int main()
+{
+	//std::cout << "*** Welcome to the Edward Davis Data Management System ***\n" << std::endl
+	//	<< "Select an experiment (type the file number) or create a [new] experiment (type new):\n\nAvailable Experiments (type 'print (num)' to see data):" << std::endl;
+
+	//// Search for previous saved experiments
+	//std::ifstream saved_experiments("list_of_experimentfiles.txt");
+
+	//if (!saved_experiments.good()) {
+	//	std::cerr << "ERROR: File could not be opened" << std::endl;
+	//	std::cin.get();
+	//	return(1);
+	//}
+	//std::string filename;
+	//int file_number{ 0 };
+	//std::vector<std::string> list_of_selections;
+	//std::vector<std::string> list_of_available_experiments;
+	//while (getline(saved_experiments, filename))
+	//{
+	//	file_number++;
+	//	list_of_selections.push_back(std::to_string(file_number));
+	//	list_of_available_experiments.push_back(filename);
+	//	std::cout << "\t(" << file_number << ") " << filename << std::endl;
+	//}
+	//std::cout << std::endl;
+
+	//// initial inputs
+	//bool getting_input{ true };
+	//while (getting_input)
+	//{
+	//	std::string input;
+	//	getline(std::cin, input);
+	//	if (is_trigger_used(input, "print")) {
+	//		std::string selected_experiment_number{ input.erase(0, 6) };
+	//		// check selection is valid
+	//		bool selection_valid{ false };
+	//		for (size_t i{ 0 }; i < list_of_selections.size(); i++)
+	//		{
+	//			if (selected_experiment_number == list_of_selections[i]) selection_valid = true;
+	//		}
+	//		if (selection_valid) {
+	//			int selected_experiment_number_int{ stoi(selected_experiment_number) };
+	//			int selected_experiment_index{ selected_experiment_number_int - 1 };
+	//			std::cout << std::endl << list_of_available_experiments[selected_experiment_index] << std::endl;
+	//			print_file(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+	//			std::cout << std::endl;
+	//		}
+	//		else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection to print" << std::endl;
+	//	}
+	//	else if (input == "x") getting_input = false;
+	//	else {
+	//		bool selection_valid{ false };
+	//		for (size_t i{ 0 }; i < list_of_selections.size(); i++)
+	//		{
+	//			if (input == list_of_selections[i]) selection_valid = true;
+	//		}
+	//		if (selection_valid) std::cout << "find a way of getting the object from the text file!" << std::endl;
+	//		else std::cout << "I'm sorry, '" << input << "' is not a valid input" << std::endl;
+	//	}
+	//}
+
+	std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
+	nominal_data person_variable("Person", person_data);
+	//person_variable.print_data();
+
+	std::vector<std::string> eye_colour_data{ "brown", "blue", "blue", "green", "brown", "brown", "blue", "blue", "brown", "brown", "blue" };
+	nominal_data eye_colour_variable("Eye Colour", eye_colour_data);
+	//eye_colour_variable.print_data();
+
+	//std::vector<int> age_data{ 22, 21, 20, 25, 22, 21, 22, 40, 24, 21, 22 };
+	//numerical_data age_variable("Age", age_data);
+	////age_variable.print_data();
+
+	//std::vector<double> height_data{ 154.1, 148.6, 139.7, 145.2, 146.0, 151.9, 143.1, 147.2, 144.5, 140.4, 150.3 };
+	//numerical_data height_variable("Height", height_data);
+
+	experiment test{ person_variable, "test experiment" };
+	test.add_variable(eye_colour_variable);
+	std::cout << test << std::endl;
+
+
+	//// Create experiment class and add measurements
+	//experiment people_experiment{ 4, "People Experiment" };
+	//people_experiment.add_variable(person_variable, 0);
+	//people_experiment.add_variable(eye_colour_variable, 1);
+	//people_experiment.add_variable(age_variable, 2);
+	//people_experiment.add_variable(height_variable, 3);
+
+	////std::cout << people_experiment << std::endl;
+	//people_experiment.save_experiment();
+
+	//experiment age_height_experiment{ 2, "Age vs Height" };
+	//age_height_experiment.add_variable(age_variable, 0);
+	//age_height_experiment.add_variable(height_variable, 1);
+
+	//age_height_experiment.save_experiment();
+
+
+
+
+	return 0;
+}
