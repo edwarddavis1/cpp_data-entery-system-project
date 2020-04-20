@@ -348,7 +348,7 @@ public:
 class experiment {
 	friend std::ostream& operator<<(std::ostream& os, const experiment& mat);
 private:
-	std::vector<measurement*> experiment_data;
+	std::vector<std::shared_ptr<measurement>> experiment_data;
 	int number_of_variables{ 0 };
 	int number_of_rows{ 0 };
 	std::string experiment_title{ "My Experiment" };
@@ -361,7 +361,7 @@ public:
 		number_of_variables = 1;
 		experiment_title = title_of_experiment;
 		std::cout << "         Adding data to experiment" << std::endl;
-		experiment_data.push_back(new nominal_data(variable.get_variable_name(), variable.get_string_data()));
+		experiment_data.emplace_back(new nominal_data(variable.get_variable_name(), variable.get_string_data()));
 	}
 	experiment(double_data variable, std::string title_of_experiment)
 	{
@@ -369,7 +369,7 @@ public:
 		number_of_variables = 1;
 		experiment_title = title_of_experiment;
 		std::cout << "         Adding data to experiment" << std::endl;
-		experiment_data.push_back(new double_data(variable.get_variable_name(), variable.get_data()));
+		experiment_data.emplace_back(new double_data(variable.get_variable_name(), variable.get_data()));
 	}
 	// Constructor for data from saved .txt files
 	experiment(std::string experiment_filename)
@@ -459,33 +459,24 @@ public:
 				for (data_point = data_start; data_point < data_end; ++data_point) {
 					double_variable_data.push_back(stod(*data_point));
 				}
-				experiment_data.push_back(new double_data(variable_names[j], double_variable_data));
+				experiment_data.emplace_back(new double_data(variable_names[j], double_variable_data));
 			} else {
-				experiment_data.push_back(new nominal_data(variable_names[j], data_for_variables[j]));
+				experiment_data.emplace_back(new nominal_data(variable_names[j], data_for_variables[j]));
 			}
 		}
 
 	}
-	~experiment() 
-	{	
-
-		for (size_t i{ 0 }; i < experiment_data.size(); i++) {
-			delete experiment_data[i];
-		}
-	}
+	~experiment() {}
 	experiment& operator=(experiment& exp)
 	{
-		std::cout << "copying: " << std::endl;
-		std::cout << exp << std::endl;
-
 		// deal with self-assignment
 		if (&exp == this) return *this;
 
-		//// reset this object
-		//experiment_data.clear();
-		//number_of_rows = 0;
-		//number_of_variables = 0;
-		//experiment_title = "My Experiment";
+		// reset this object
+		experiment_data.clear();
+		number_of_rows = 0;
+		number_of_variables = 0;
+		experiment_title = "My Experiment";
 
 		// copy data over
 		number_of_rows = exp.get_number_of_rows();
@@ -505,7 +496,7 @@ public:
 		}
 		return *experiment_data[index];
 	}
-	std::vector<measurement*> get_experiment_data() const { return experiment_data; }
+	std::vector<std::shared_ptr<measurement>> get_experiment_data() const { return experiment_data; }
 	void set_title(std::string title) { experiment_title = title; }
 	std::string get_title() const { return experiment_title; }
 	int get_number_of_variables() const { return number_of_variables; }
@@ -529,15 +520,15 @@ public:
 
 		number_of_variables++;
 		if (number_of_rows == 0) number_of_rows = variable.get_length();
-		experiment_data.push_back(new c_type(variable.get_variable_name(), variable.get_data()));
+		experiment_data.emplace_back(new c_type(variable.get_variable_name(), variable.get_data()));
 	}
 
 	void summary()
 	{
-		std::vector<measurement*> list_of_variables{ experiment_data };
-		std::vector<measurement*>::iterator first_variable{ experiment_data.begin() };
-		std::vector<measurement*>::iterator last_variable{ experiment_data.end() };
-		std::vector<measurement*>::iterator variable;
+		std::vector<std::shared_ptr<measurement>> list_of_variables{ experiment_data };
+		std::vector<std::shared_ptr<measurement>>::iterator first_variable{ experiment_data.begin() };
+		std::vector<std::shared_ptr<measurement>>::iterator last_variable{ experiment_data.end() };
+		std::vector<std::shared_ptr<measurement>>::iterator variable;
 
 		// get all summary measures
 		std::vector<std::vector<std::string>> all_summary_measures;
@@ -816,162 +807,160 @@ int main()
 
 	//test_2.save_experiment();
 
-	experiment test_copy;
-	test_copy = test_2;
-	std::cout << test_copy << std::endl;
 
+	std::cout << "*** Welcome to the Edward Davis Data Management System ***\n" << std::endl
+		<< "Select an experiment for data entry by typing 'select' followed by the experiment ID number\n"
+		<< "  - Create a new experiment by typing 'new'\n"
+		<< "  - To view quick commands type 'help'" << std::endl;
 
+	// Search for previous saved experiments
+	std::ifstream saved_experiments("list_of_experimentfiles.txt");
 
-	//std::cout << "*** Welcome to the Edward Davis Data Management System ***\n" << std::endl
-	//	<< "Select an experiment for data entry by typing 'select' followed by the experiment ID number\n"
-	//	<< "  - Create a new experiment by typing 'new'\n"
-	//	<< "  - To view quick commands type 'help'" << std::endl;
+	if (!saved_experiments.good()) {
+		std::cerr << "ERROR: File could not be opened" << std::endl;
+		std::cin.get();
+		return(1);
+	}
+	std::string filename;
+	int file_number{ 0 };
+	std::vector<std::string> list_of_selections;
+	std::vector<std::string> list_of_available_experiments;
+	while (getline(saved_experiments, filename))
+	{
+		file_number++;
+		list_of_selections.push_back(std::to_string(file_number));
+		list_of_available_experiments.push_back(filename);
+		std::cout << "\t(" << file_number << ") " << filename << std::endl;
+	}
+	saved_experiments.close();
+	std::cout << std::endl;
 
-	//// Search for previous saved experiments
-	//std::ifstream saved_experiments("list_of_experimentfiles.txt");
+	// experiment object for the selected experiment object
+	experiment exp_for_input;
 
-	//if (!saved_experiments.good()) {
-	//	std::cerr << "ERROR: File could not be opened" << std::endl;
-	//	std::cin.get();
-	//	return(1);
-	//}
-	//std::string filename;
-	//int file_number{ 0 };
-	//std::vector<std::string> list_of_selections;
-	//std::vector<std::string> list_of_available_experiments;
-	//while (getline(saved_experiments, filename))
-	//{
-	//	file_number++;
-	//	list_of_selections.push_back(std::to_string(file_number));
-	//	list_of_available_experiments.push_back(filename);
-	//	std::cout << "\t(" << file_number << ") " << filename << std::endl;
-	//}
-	//saved_experiments.close();
-	//std::cout << std::endl;
+	// initial inputs - for quick access to saved data
+	bool getting_input{ true };
+	while (getting_input)
+	{
+		std::string input;
+		getline(std::cin, input);
+		if (is_trigger_used(input, "print")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "print") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
 
-	//// experiment object for the selected experiment object
-	//experiment exp_for_input;
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				std::cout << selected_experiment << std::endl;
 
-	//// initial inputs - for quick access to saved data
-	//bool getting_input{ true };
-	//while (getting_input)
-	//{
-	//	std::string input;
-	//	getline(std::cin, input);
-	//	if (is_trigger_used(input, "print")) {
-	//		std::string selected_experiment_number{ get_selected_experiment_ID(input, "print") };
-	//		// check selection is valid
-	//		bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
-	//		if (selection_valid) {
-	//			int selected_experiment_number_int{ stoi(selected_experiment_number) };
-	//			int selected_experiment_index{ selected_experiment_number_int - 1 };
+			} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (is_trigger_used(input, "summarise")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "summarise") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
 
-	//			experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
-	//			std::cout << selected_experiment << std::endl;
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				selected_experiment.summary();
 
-	//		} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
-	//	} else if (is_trigger_used(input, "summarise")) {
-	//		std::string selected_experiment_number{ get_selected_experiment_ID(input, "summarise") };
-	//		// check selection is valid
-	//		bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
-	//		if (selection_valid) {
-	//			int selected_experiment_number_int{ stoi(selected_experiment_number) };
-	//			int selected_experiment_index{ selected_experiment_number_int - 1 };
+			} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (is_trigger_used(input, "delete")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "delete") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
 
-	//			experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
-	//			selected_experiment.summary();
+				// delete experiment
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				selected_experiment.delete_experiment();
 
-	//		} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
-	//	} else if (is_trigger_used(input, "delete")) {
-	//		std::string selected_experiment_number{ get_selected_experiment_ID(input, "delete") };
-	//		// check selection is valid
-	//		bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
-	//		if (selection_valid) {
-	//			int selected_experiment_number_int{ stoi(selected_experiment_number) };
-	//			int selected_experiment_index{ selected_experiment_number_int - 1 };
+				// update the available experiments list
+				std::ifstream saved_experiments("list_of_experimentfiles.txt");
 
-	//			// delete experiment
-	//			experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
-	//			selected_experiment.delete_experiment();
+				if (!saved_experiments.good()) {
+					std::cerr << "ERROR: File could not be opened" << std::endl;
+				}
+				else {
+					file_number = 0;
+					list_of_selections.clear();
+					list_of_available_experiments.clear();
+					while (getline(saved_experiments, filename)) {
+						file_number++;
+						list_of_selections.push_back(std::to_string(file_number));
+						list_of_available_experiments.push_back(filename);
+						std::cout << "\t(" << file_number << ") " << filename << std::endl;
+					}
+					saved_experiments.close();
+					std::cout << std::endl;
+				}
+			} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (input == "saved experiments") {
+			// Search for previous saved experiments
+			std::ifstream saved_experiments("list_of_experimentfiles.txt");
 
-	//			// update the available experiments list
-	//			std::ifstream saved_experiments("list_of_experimentfiles.txt");
+			if (!saved_experiments.good()) {
+				std::cerr << "ERROR: File could not be opened" << std::endl;
+			} else {
+				file_number = 0;
+				list_of_selections.clear();
+				list_of_available_experiments.clear();
+				while (getline(saved_experiments, filename))
+				{
+					file_number++;
+					list_of_selections.push_back(std::to_string(file_number));
+					list_of_available_experiments.push_back(filename);
+					std::cout << "\t(" << file_number << ") " << filename << std::endl;
+				}
+				saved_experiments.close();
+				std::cout << std::endl;
+			}
+		}
+		else if (is_trigger_used(input, "select")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "select") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
 
-	//			if (!saved_experiments.good()) {
-	//				std::cerr << "ERROR: File could not be opened" << std::endl;
-	//			}
-	//			else {
-	//				file_number = 0;
-	//				list_of_selections.clear();
-	//				list_of_available_experiments.clear();
-	//				while (getline(saved_experiments, filename)) {
-	//					file_number++;
-	//					list_of_selections.push_back(std::to_string(file_number));
-	//					list_of_available_experiments.push_back(filename);
-	//					std::cout << "\t(" << file_number << ") " << filename << std::endl;
-	//				}
-	//				saved_experiments.close();
-	//				std::cout << std::endl;
-	//			}
-	//		} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
-	//	} else if (input == "saved experiments") {
-	//		// Search for previous saved experiments
-	//		std::ifstream saved_experiments("list_of_experimentfiles.txt");
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				exp_for_input = selected_experiment;
+				getting_input = false;
 
-	//		if (!saved_experiments.good()) {
-	//			std::cerr << "ERROR: File could not be opened" << std::endl;
-	//		} else {
-	//			file_number = 0;
-	//			list_of_selections.clear();
-	//			list_of_available_experiments.clear();
-	//			while (getline(saved_experiments, filename))
-	//			{
-	//				file_number++;
-	//				list_of_selections.push_back(std::to_string(file_number));
-	//				list_of_available_experiments.push_back(filename);
-	//				std::cout << "\t(" << file_number << ") " << filename << std::endl;
-	//			}
-	//			saved_experiments.close();
-	//			std::cout << std::endl;
-	//		}
-	//	}
-	//	else if (is_trigger_used(input, "select")) {
-	//		std::string selected_experiment_number{ get_selected_experiment_ID(input, "select") };
-	//		// check selection is valid
-	//		bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
-	//		if (selection_valid) {
-	//			int selected_experiment_number_int{ stoi(selected_experiment_number) };
-	//			int selected_experiment_index{ selected_experiment_number_int - 1 };
+			}
+			else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (input == "help") {
+			std::cout << "List of quick commands\n"
+				<< "  print ID:           returns a table showing the data from the selected experiment\n"
+				<< "  summarise ID:       returns a statistical summary of the experiment data by variable\n"
+				<< "  delete ID:          deletes the selected experiment - this cannot be undone!\n"
+				<< "  saved experiments:  shows a list of available experiments with their ID number\n"
+				<< "  select ID:          selects an experiment to input data\n"
+				<< "  new:                creates a new experiment to input data"
+				<< std::endl;
+		} else if (input == "x") getting_input = false;
+		else {
+			bool selection_valid{ false };
+			for (size_t i{ 0 }; i < list_of_selections.size(); i++)
+			{
+				if (input == list_of_selections[i]) selection_valid = true;
+			}
+			if (selection_valid) std::cout << "find a way of getting the object from the text file!" << std::endl;
+			else std::cout << "I'm sorry, '" << input << "' is not a valid input" << std::endl;
+		}
+	}
 
-	//			experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
-	//			exp_for_input = selected_experiment;
-	//			getting_input = false;
-
-	//		}
-	//		else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
-	//	} else if (input == "help") {
-	//		std::cout << "List of quick commands\n"
-	//			<< "  print ID:           returns a table showing the data from the selected experiment\n"
-	//			<< "  summarise ID:       returns a statistical summary of the experiment data by variable\n"
-	//			<< "  delete ID:          deletes the selected experiment - this cannot be undone!\n"
-	//			<< "  saved experiments:  shows a list of available experiments with their ID number\n"
-	//			<< "  select ID:          selects an experiment to input data\n"
-	//			<< "  new:                creates a new experiment to input data"
-	//			<< std::endl;
-	//	} else if (input == "x") getting_input = false;
-	//	else {
-	//		bool selection_valid{ false };
-	//		for (size_t i{ 0 }; i < list_of_selections.size(); i++)
-	//		{
-	//			if (input == list_of_selections[i]) selection_valid = true;
-	//		}
-	//		if (selection_valid) std::cout << "find a way of getting the object from the text file!" << std::endl;
-	//		else std::cout << "I'm sorry, '" << input << "' is not a valid input" << std::endl;
-	//	}
-	//}
-
-	//std::cout << "Selected experiment: " << std::endl;
-	//std::cout << exp_for_input << std::endl;
+	bool inputting_data{ true };
+	while (inputting_data)
+	{
+		std::cout << "inputting data" << std::endl;
+	}
 
 	//std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
 	//nominal_data person_variable("Person", person_data);
