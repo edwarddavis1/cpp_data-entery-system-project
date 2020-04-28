@@ -12,6 +12,9 @@
 #include <fstream>
 #include <memory>
 #include <cstdio>
+#include <chrono>
+#include <ctime>
+#include "final_project_header.h"
 
 std::string remove_zero_trail(std::string string_number)
 {
@@ -86,6 +89,12 @@ bool is_data_point_a_number(std::string data_point)
 
 	return !contains_non_digit;
 }
+std::vector<std::string> datestamps_from_single_date(std::string date, size_t length)
+{
+	std::vector<std::string> datestamps;
+	for (size_t i{ 0 }; i < length; i++) datestamps.push_back(date);
+	return datestamps;
+}
 class measurement {
 public:
 	virtual ~measurement() {}
@@ -96,9 +105,9 @@ public:
 	virtual std::string get_variable_name() const = 0;
 	virtual std::vector<std::string> get_string_data() const = 0;
 	virtual std::string get_measurement_type() const = 0;
-
+	virtual std::vector<std::string> get_datestamps() const = 0;
+	virtual std::vector<double> get_error_data() const = 0;
 };
-
 class labelled_data : public measurement {
 public:
 	~labelled_data() {}
@@ -110,12 +119,14 @@ class nominal_data : public labelled_data {
 private:
 	std::vector<std::string> data;
 	std::string variable_name;
+	std::vector<std::string> datestamps;
 public:
 	nominal_data() = default;
-	nominal_data(const std::string name_of_variable, const std::vector<std::string> variable_data)
+	nominal_data(const std::string name_of_variable, const std::vector<std::string> variable_data, const std::vector<std::string> variable_datestamps)
 	{
 		variable_name = name_of_variable;
 		data = variable_data;
+		datestamps = variable_datestamps;
 	}
 	~nominal_data() {}
 
@@ -135,6 +146,15 @@ public:
 	}
 	size_t get_length() const { return data.size(); }
 	std::string get_variable_name() const { return variable_name; }
+	std::vector<std::string> get_datestamps() const { return datestamps; }
+	std::vector<double> get_error_data() const
+	{
+		std::vector<double> error_data;
+		for (size_t i{ 0 }; i < data.size(); i++) {
+			error_data.push_back(0);
+		}
+		return error_data;
+	}
 	std::string& operator[](size_t index)
 	{
 		if (index < 0 || index >= data.size()) {
@@ -173,21 +193,45 @@ public:
 };
 class double_data : public measurement {
 private:
-	std::vector<double> data{};
-	std::string variable_name{};
+	std::vector<double> data;
+	std::vector<double> error_data;
+	std::string variable_name{ "My Variable" };
+	std::vector<std::string> datestamps;
+
 public:
 	double_data() = default;
-	double_data(const std::string name_of_variable, const std::vector<double> variable_data)
+	// Constructor for a variable with no error
+	double_data(const std::string name_of_variable, const std::vector<double> variable_data, std::vector<std::string> variable_datestamps)
 	{
 		variable_name = name_of_variable;
-		// if data given as vector<int> then make sure it is converted to double
-		std::vector<double> double_variable_data;
-		for (size_t i{ 0 }; i < variable_data.size(); i++) double_variable_data.push_back(variable_data[i]);
-		data = double_variable_data;
+		for (size_t i{ 0 }; i < variable_data.size(); i++) {
+			data.push_back(variable_data[i]);
+			error_data.push_back(0);
+			datestamps.push_back(variable_datestamps[i]);
+		}
+	}
+	// Constructor for a variable with a systematic error
+	double_data(const std::string name_of_variable, const std::vector<double> variable_data, const double systematic_error, std::vector<std::string> variable_datestamps)
+	{
+		variable_name = name_of_variable;
+		for (size_t i{ 0 }; i < variable_data.size(); i++) {
+			data.push_back(variable_data[i]);
+			error_data.push_back(systematic_error);
+			datestamps.push_back(variable_datestamps[i]);
+		}
+	}
+	// Constructor for a variable with individual measurement error
+	double_data(const std::string name_of_variable, const std::vector<double> variable_data, const std::vector<double> measurement_error, std::vector<std::string> variable_datestamps)
+	{
+		variable_name = name_of_variable;
+		for (size_t i{ 0 }; i < variable_data.size(); i++) {
+			data.push_back(variable_data[i]);
+			error_data.push_back(measurement_error[i]);
+			datestamps.push_back(variable_datestamps[i]);
+		}
 	}
 	~double_data() {}
 
-	
 	void print_data()
 	{
 		std::cout << "Variable: " << variable_name << std::endl;
@@ -210,6 +254,8 @@ public:
 		std::cout << std::endl;
 	}
 	size_t get_length() const { return data.size(); }
+	std::vector<std::string> get_datestamps() const { return datestamps; }
+	std::vector<double> get_error_data() const { return error_data; }
 	std::string get_variable_name() const { return variable_name; }
 	std::string get_measurement_type() const { return "numerical"; }
 	double& operator[](size_t index)
@@ -352,24 +398,35 @@ private:
 	int number_of_variables{ 0 };
 	int number_of_rows{ 0 };
 	std::string experiment_title{ "My Experiment" };
+	std::vector<std::string> experiment_datestamps;
 public:
 	experiment() = default;
 	// Constructor from existing variables
 	experiment(nominal_data variable, std::string title_of_experiment)
 	{
 		number_of_rows = variable.get_length();
-		number_of_variables = 1;
+		number_of_variables = 2;
 		experiment_title = title_of_experiment;
 		std::cout << "         Adding data to experiment" << std::endl;
-		experiment_data.emplace_back(new nominal_data(variable.get_variable_name(), variable.get_string_data()));
+		experiment_data.emplace_back(new nominal_data("Datestamps", variable.get_datestamps(), variable.get_datestamps()));
+		experiment_datestamps = variable.get_datestamps();
+		experiment_data.emplace_back(new nominal_data(variable.get_variable_name(), variable.get_string_data(), variable.get_datestamps()));
 	}
 	experiment(double_data variable, std::string title_of_experiment)
 	{
 		number_of_rows = variable.get_length();
-		number_of_variables = 1;
+		number_of_variables = 2;
 		experiment_title = title_of_experiment;
 		std::cout << "         Adding data to experiment" << std::endl;
-		experiment_data.emplace_back(new double_data(variable.get_variable_name(), variable.get_data()));
+		experiment_data.emplace_back(new nominal_data("Datestamps", variable.get_datestamps(), variable.get_datestamps()));
+		experiment_datestamps = variable.get_datestamps();
+		experiment_data.emplace_back(new double_data(variable.get_variable_name(), variable.get_data(), variable.get_datestamps()));
+		std::vector<double> variable_error_data{ variable.get_error_data() };
+		bool non_zero_error{ false };
+		for (size_t i{ 0 }; i < variable_error_data.size(); i++) {
+			if (variable_error_data[i] != 0) non_zero_error = true;
+		}
+		if (non_zero_error) experiment_data.emplace_back(new double_data(variable.get_variable_name() + " Error", variable.get_error_data(), variable.get_datestamps()));
 	}
 	// Constructor for data from saved .txt files
 	experiment(std::string experiment_filename)
@@ -459,9 +516,9 @@ public:
 				for (data_point = data_start; data_point < data_end; ++data_point) {
 					double_variable_data.push_back(stod(*data_point));
 				}
-				experiment_data.emplace_back(new double_data(variable_names[j], double_variable_data));
+				experiment_data.emplace_back(new double_data(variable_names[j], double_variable_data, datestamps_from_single_date("Date placeholder", double_variable_data.size())));
 			} else {
-				experiment_data.emplace_back(new nominal_data(variable_names[j], data_for_variables[j]));
+				experiment_data.emplace_back(new nominal_data(variable_names[j], data_for_variables[j], datestamps_from_single_date("Date placeholder", data_for_variables.size())));
 			}
 		}
 
@@ -518,9 +575,41 @@ public:
 		}
 		std::cout << "Adding " << variable.get_variable_name() << " to '" << experiment_title << "'" << std::endl;
 
+		bool add_datestamps{ false };
+		if (number_of_variables == 0) add_datestamps = true;
+
 		number_of_variables++;
 		if (number_of_rows == 0) number_of_rows = variable.get_length();
-		experiment_data.emplace_back(new c_type(variable.get_variable_name(), variable.get_data()));
+		if (add_datestamps) {
+			experiment_data.emplace_back(new nominal_data("Datestamps", variable.get_datestamps(), variable.get_datestamps()));
+			experiment_datestamps = variable.get_datestamps();
+			number_of_variables++;
+		}
+		experiment_data.emplace_back(new c_type(variable.get_variable_name(), variable.get_data(), variable.get_datestamps()));
+		
+		// If the error variable is non-zero add it as an error variable
+		std::vector<double> variable_error_data{ variable.get_error_data() };
+		bool non_zero_error{ false };
+		for (size_t i{ 0 }; i < variable_error_data.size(); i++) {
+			if (variable_error_data[i] != 0) non_zero_error = true;
+		}
+		if (non_zero_error) {
+			std::cout << "Added error variable" << std::endl;
+			experiment_data.emplace_back(new double_data(variable.get_variable_name() + " Error", variable.get_error_data(), variable.get_datestamps()));
+			number_of_variables++;
+		}
+
+		// If a variable has different datestamps to the experiment, add those as separate variables
+		std::vector<std::string> variable_datestamps{ variable.get_datestamps() };
+		bool add_extra_date_variable{ false };
+		for (size_t i{ 0 }; i < variable_datestamps.size(); i++) {
+			if (variable_datestamps[i] != experiment_datestamps[i]) add_extra_date_variable = true;
+		}
+		if (add_extra_date_variable) {
+			std::cout << "Added extra date variable" << std::endl;
+			experiment_data.emplace_back(new nominal_data(variable.get_variable_name() + " Datestamps", variable.get_datestamps(), variable.get_datestamps()));
+			number_of_variables++;
+		}
 	}
 
 	void summary()
@@ -774,19 +863,20 @@ int main()
 {
 
 	std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
-	nominal_data person_variable("Person", person_data);
+	nominal_data person_variable("Person", person_data, datestamps_from_single_date("20/04/2020", person_data.size()));
 	//person_variable.print_data();
 
 	std::vector<std::string> eye_colour_data{ "brown", "blue", "blue", "green", "brown", "brown", "blue", "blue", "brown", "brown", "blue" };
-	nominal_data eye_colour_variable("Eye Colour", eye_colour_data);
+	nominal_data eye_colour_variable("Eye Colour", eye_colour_data, datestamps_from_single_date("20/04/2020", eye_colour_data.size()));
 	//eye_colour_variable.print_data();
 
 	std::vector<double> age_data{ 22, 21, 20, 25, 22, 21, 22, 40, 24, 21, 22 };
-	double_data age_variable("Age", age_data);
+	double_data age_variable("Age", age_data, datestamps_from_single_date("19/04/2020", age_data.size()));
 	//age_variable.print_data();
 
 	std::vector<double> height_data{ 154.1, 148.6, 139.7, 145.2, 146.0, 151.9, 143.1, 147.2, 144.5, 140.4, 150.3 };
-	double_data height_variable("Height", height_data);
+	std::vector<double> height_errors{ 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.1, 2.2, 1.9, 1.8, 2.6 };
+	double_data height_variable("Height", height_data, height_errors, datestamps_from_single_date("20/04/2020", height_data.size()));
 	//height_variable.summary();
 
 	experiment test;
@@ -796,7 +886,7 @@ int main()
 	test.add_variable(age_variable);
 	test.add_variable(height_variable);
 
-	//test.save_experiment();
+	test.save_experiment();
 
 	experiment test_2;
 	test_2.set_title("test experiment 2");
@@ -805,7 +895,7 @@ int main()
 	test_2.add_variable(age_variable);
 	test_2.add_variable(height_variable);
 
-	//test_2.save_experiment();
+	test_2.save_experiment();
 
 
 	std::cout << "*** Welcome to the Edward Davis Data Management System ***\n" << std::endl
@@ -959,7 +1049,10 @@ int main()
 	bool inputting_data{ true };
 	while (inputting_data)
 	{
-		std::cout << "inputting data" << std::endl;
+		std::cout << "Inputting data for " << exp_for_input.get_title() << "..." << std::endl;
+		
+		
+		inputting_data = false;
 	}
 
 	//std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
