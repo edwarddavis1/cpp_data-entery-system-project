@@ -1,0 +1,345 @@
+// Edward Davis 9937240
+// Last modified: 
+// 
+// Compiled using Visual Studio 2017
+
+#include <iostream>
+#include <string>
+#include <algorithm>
+#include <vector>
+#include <iterator>
+#include <sstream>
+#include <fstream>
+#include <memory>
+#include <cstdio>
+#include <chrono>
+#include <ctime>
+#include "final_project_header.h"
+
+int main()
+{
+	std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
+	nominal_data person_variable("Person", person_data, datestamps_from_single_date("20/04/2020", person_data.size()));
+	//person_variable.print_data();
+
+	std::vector<std::string> eye_colour_data{ "brown", "blue", "blue", "green", "brown", "brown", "blue", "blue", "brown", "brown", "blue" };
+	nominal_data eye_colour_variable("Eye Colour", eye_colour_data, datestamps_from_single_date("20/04/2020", eye_colour_data.size()));
+	//eye_colour_variable.print_data();
+
+	std::vector<double> age_data{ 22, 21, 20, 25, 22, 21, 22, 40, 24, 21, 22 };
+	double_data age_variable("Age", age_data, datestamps_from_single_date("19/04/2020", age_data.size()));
+	//age_variable.print_data();
+
+	std::vector<double> height_data{ 154.1, 148.6, 139.7, 145.2, 146.0, 151.9, 143.1, 147.2, 144.5, 140.4, 150.3 };
+	std::vector<double> height_errors{ 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.1, 2.2, 1.9, 1.8, 2.6 };
+	double_data height_variable("Height", height_data, height_errors, datestamps_from_single_date("20/04/2020", height_data.size()));
+	//height_variable.summary();
+
+	experiment test;
+	test.set_title("test experiment");
+	test.add_variable(person_variable);
+	test.add_variable(eye_colour_variable);
+	test.add_variable(age_variable);
+	test.add_variable(height_variable);
+
+	test.save_experiment();
+
+	experiment test_2;
+	test_2.set_title("test experiment 2");
+	test_2.add_variable(person_variable);
+	test_2.add_variable(eye_colour_variable);
+	test_2.add_variable(age_variable);
+	test_2.add_variable(height_variable);
+
+	test_2.save_experiment();
+
+
+	std::cout << "*** Welcome to the Edward Davis Data Management System ***\n" << std::endl
+		<< "Select an experiment for data entry by typing 'select' followed by the experiment ID number\n"
+		<< "  - Create a new experiment by typing 'new'\n"
+		<< "  - To view quick commands type 'help'" << std::endl;
+
+	// Search for previous saved experiments
+	std::ifstream saved_experiments("list_of_experimentfiles.txt");
+
+	if (!saved_experiments.good()) {
+		std::cerr << "ERROR: File could not be opened" << std::endl;
+		std::cin.get();
+		return(1);
+	}
+	std::string filename;
+	int file_number{ 0 };
+	std::vector<std::string> list_of_selections;
+	std::vector<std::string> list_of_available_experiments;
+	while (getline(saved_experiments, filename))
+	{
+		file_number++;
+		list_of_selections.push_back(std::to_string(file_number));
+		list_of_available_experiments.push_back(filename);
+		std::cout << "\t(" << file_number << ") " << filename << std::endl;
+	}
+	saved_experiments.close();
+	std::cout << std::endl;
+
+	// experiment object for the selected experiment object
+	experiment exp_for_input;
+
+	// initial inputs - for quick access to saved data
+	bool getting_input{ true };
+	while (getting_input)
+	{
+		std::string input;
+		getline(std::cin, input);
+		if (is_trigger_used(input, "print")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "print") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
+
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				std::cout << selected_experiment << std::endl;
+
+			} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (is_trigger_used(input, "summarise")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "summarise") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
+
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				selected_experiment.summary();
+
+			} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (is_trigger_used(input, "delete")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "delete") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
+
+				// delete experiment
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				selected_experiment.delete_experiment();
+
+				// update the available experiments list
+				std::ifstream saved_experiments("list_of_experimentfiles.txt");
+
+				if (!saved_experiments.good()) {
+					std::cerr << "ERROR: File could not be opened" << std::endl;
+				}
+				else {
+					file_number = 0;
+					list_of_selections.clear();
+					list_of_available_experiments.clear();
+					while (getline(saved_experiments, filename)) {
+						file_number++;
+						list_of_selections.push_back(std::to_string(file_number));
+						list_of_available_experiments.push_back(filename);
+						std::cout << "\t(" << file_number << ") " << filename << std::endl;
+					}
+					saved_experiments.close();
+					std::cout << std::endl;
+				}
+			} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (input == "saved experiments") {
+			// Search for previous saved experiments
+			std::ifstream saved_experiments("list_of_experimentfiles.txt");
+
+			if (!saved_experiments.good()) {
+				std::cerr << "ERROR: File could not be opened" << std::endl;
+			} else {
+				file_number = 0;
+				list_of_selections.clear();
+				list_of_available_experiments.clear();
+				while (getline(saved_experiments, filename))
+				{
+					file_number++;
+					list_of_selections.push_back(std::to_string(file_number));
+					list_of_available_experiments.push_back(filename);
+					std::cout << "\t(" << file_number << ") " << filename << std::endl;
+				}
+				saved_experiments.close();
+				std::cout << std::endl;
+			}
+		}
+		else if (is_trigger_used(input, "select")) {
+			std::string selected_experiment_number{ get_selected_experiment_ID(input, "select") };
+			// check selection is valid
+			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+			if (selection_valid) {
+				int selected_experiment_number_int{ stoi(selected_experiment_number) };
+				int selected_experiment_index{ selected_experiment_number_int - 1 };
+
+				experiment selected_experiment(list_of_available_experiments[stoi(selected_experiment_number) - 1] + ".txt");
+				exp_for_input = selected_experiment;
+				getting_input = false;
+
+			}
+			else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+		} else if (input == "help") {
+			std::cout << "List of quick commands\n"
+				<< "  print ID:           returns a table showing the data from the selected experiment\n"
+				<< "  summarise ID:       returns a statistical summary of the experiment data by variable\n"
+				<< "  delete ID:          deletes the selected experiment - this cannot be undone!\n"
+				<< "  saved experiments:  shows a list of available experiments with their ID number\n"
+				<< "  select ID:          selects an experiment to input data\n"
+				<< "  new:                creates a new experiment to input data"
+				<< std::endl;
+		} else if (input == "x") getting_input = false;
+		else {
+			bool selection_valid{ false };
+			for (size_t i{ 0 }; i < list_of_selections.size(); i++)
+			{
+				if (input == list_of_selections[i]) selection_valid = true;
+			}
+			if (selection_valid) std::cout << "find a way of getting the object from the text file!" << std::endl;
+			else std::cout << "I'm sorry, '" << input << "' is not a valid input" << std::endl;
+		}
+	}
+
+	// input data for selected experiment
+	std::cout << "Inputting data for " << exp_for_input.get_title() << "..." << std::endl;
+	std::vector<std::string> variable_names_for_input{ exp_for_input.get_list_of_variable_names() };
+	std::vector<std::string> variable_types_for_input{ exp_for_input.get_variable_types() };
+	int input_row{ exp_for_input.get_number_of_rows() + 1};
+	bool inputting_data{ true };
+	std::vector<double> double_input_data;
+	std::vector<double> error_input_data;
+	std::vector<std::string> nominal_input_data;
+	std::vector<std::string> variable_datestamp_input_data;
+	std::vector<std::string> experiment_datestamp_input_data;
+	while (inputting_data)
+	{
+		// Input the data for each column row by row
+		for (int input_col{ 0 }; input_col < exp_for_input.get_number_of_variables(); input_col++) {
+			// Check inputs depending on variable type
+			bool input_accepted{ false };
+			while (!input_accepted) {
+				std::cout << variable_names_for_input[input_col] << "[" << input_row << "]: ";
+				std::string input_data_point;
+				getline(std::cin, input_data_point);
+				std::cout << std::endl;
+				if (variable_types_for_input[input_col] == "double") {
+					if (!is_data_point_a_number(input_data_point)) {
+						std::cerr << "ERROR: Variable only accepts numerical data" << std::endl;
+					} else {
+						// Add double to data
+						input_accepted = true;
+						double_input_data.push_back(stod(input_data_point));
+					}
+				} else if (variable_types_for_input[input_col] == "error") {
+					if (!is_data_point_a_number(input_data_point)) {
+						std::cerr << "ERROR: Variable only accepts numerical data" << std::endl;
+					} else {
+						// Add double to data
+						input_accepted = true;
+						error_input_data.push_back(stod(input_data_point));
+					}
+				} else if (variable_types_for_input[input_col] == "datestamp") {
+					if (!is_data_point_a_datestamp(input_data_point)) {
+						std::cerr << "ERROR: Variable only accepts dates with format dd/mm/yyyy" << std::endl;
+					} else {
+						// Add datestamp to data
+						input_accepted = true;
+						// Update experiment datestamps if appropriate
+						if (variable_names_for_input[input_col] == "Datestamps") {
+							experiment_datestamp_input_data.push_back(input_data_point);
+						} 
+						variable_datestamp_input_data.push_back(input_data_point);
+					}
+				} else if (variable_types_for_input[input_col] == "nominal") {
+					input_accepted = true;
+					nominal_input_data.push_back(input_data_point);
+				}
+			}
+
+		}
+		std::cout << "Enter another row? [y/n]" << std::endl;
+		bool accepted_choice{ false };
+		std::string row_choice;
+		while (!accepted_choice) {			
+			getline(std::cin, row_choice);
+			if (row_choice == "y") {
+				accepted_choice = true;
+				input_row++;
+			}
+			else if (row_choice == "n") {
+				accepted_choice = true;
+				inputting_data = false;
+			}
+			else std::cerr << "ERROR: Please enter 'y' to enter a new row or 'n' to stop data input" << std::endl;
+		}
+		// Add the data to each variable
+		// Count the variable types for the extraction of variable data from input data
+		// Note that error and datestamp variables will belong to a double or nominal variable
+		std::vector<std::string> double_variable_names;
+		std::vector<std::string> nominal_variable_names;
+		for (size_t i{ 0 }; i < variable_types_for_input.size(); i++) {
+			std::string type{ variable_types_for_input[i] };
+			if (type == "double") double_variable_names.push_back(variable_names_for_input[i]);
+			else if (type == "nominal") nominal_variable_names.push_back(variable_names_for_input[i]);
+		}
+		// sort double data
+		if (double_variable_names.size() != 0) {
+			for (size_t i{ 0 }; i < double_variable_names.size(); i++) {
+				std::string variable_name{ double_variable_names[i] };
+
+				// Search for associated error or datestamp variables
+				for (size_t j{ 0 }; j < double_variable_names.size(); j++) {
+					size_t found_associated_variable{ double_variable_names[j].find(variable_name) };
+					if (found_associated_variable != std::string::npos) {
+						// Find out if the associated variable is an error or datestamp
+						if (double_variable_names[j].find("Error")) {
+
+
+
+						}
+					}
+				}
+			}
+		}
+	}
+
+	//std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
+	//nominal_data person_variable("Person", person_data);
+	////person_variable.print_data();
+
+	//std::vector<std::string> eye_colour_data{ "brown", "blue", "blue", "green", "brown", "brown", "blue", "blue", "brown", "brown", "blue" };
+	//nominal_data eye_colour_variable("Eye Colour", eye_colour_data);
+	////eye_colour_variable.print_data();
+
+	//std::vector<double> age_data{ 22, 21, 20, 25, 22, 21, 22, 40, 24, 21, 22 };
+	//double_data age_variable("Age", age_data);
+	////age_variable.print_data();
+
+	//std::vector<double> height_data{ 154.1, 148.6, 139.7, 145.2, 146.0, 151.9, 143.1, 147.2, 144.5, 140.4, 150.3 };
+	//double_data height_variable("Height", height_data);
+	////height_variable.summary();
+
+	//experiment test;
+	//test.set_title("test experiment");
+	//test.add_variable(person_variable);
+	//test.add_variable(eye_colour_variable);
+	//test.add_variable(age_variable);
+	//test.add_variable(height_variable);
+
+	//test.save_experiment();
+
+	//experiment test_2;
+	//test_2.set_title("test experiment 2");
+	//test_2.add_variable(person_variable);
+	//test_2.add_variable(eye_colour_variable);
+	//test_2.add_variable(age_variable);
+	//test_2.add_variable(height_variable);
+
+	//test.save_experiment();
+
+
+
+	return 0;
+}
