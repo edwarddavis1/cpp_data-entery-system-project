@@ -131,8 +131,7 @@ int main()
 
 				if (!saved_experiments.good()) {
 					std::cerr << "ERROR: File could not be opened" << std::endl;
-				}
-				else {
+				} else {
 					file_number = 0;
 					list_of_selections.clear();
 					list_of_available_experiments.clear();
@@ -166,8 +165,7 @@ int main()
 				saved_experiments.close();
 				std::cout << std::endl;
 			}
-		}
-		else if (is_trigger_used(input, "select")) {
+		} else if (is_trigger_used(input, "select")) {
 			std::string selected_experiment_number{ get_selected_experiment_ID(input, "select") };
 			// check selection is valid
 			bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
@@ -179,8 +177,7 @@ int main()
 				exp_for_input = selected_experiment;
 				getting_input = false;
 
-			}
-			else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+			} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
 		} else if (input == "help") {
 			std::cout << "List of quick commands\n"
 				<< "  print ID:           returns a table showing the data from the selected experiment\n"
@@ -206,15 +203,34 @@ int main()
 	std::cout << "Inputting data for " << exp_for_input.get_title() << "..." << std::endl;
 	std::vector<std::string> variable_names_for_input{ exp_for_input.get_list_of_variable_names() };
 	std::vector<std::string> variable_types_for_input{ exp_for_input.get_variable_types() };
-	int input_row{ exp_for_input.get_number_of_rows() + 1};
+	int input_row{ exp_for_input.get_number_of_rows() + 1 };
 	bool inputting_data{ true };
-	std::vector<double> double_input_data;
-	std::vector<double> error_input_data;
-	std::vector<std::string> nominal_input_data;
-	std::vector<std::string> variable_datestamp_input_data;
+	int number_of_new_rows{ 0 };
+	// Find out how many of each variable are in the select experiment
+	int num_doubles{ 0 };
+	int num_nominals{ 0 };
+	int num_errors{ 0 };
+	int num_datestamps{ 0 };
+	for (size_t i{ 0 }; i < variable_types_for_input.size(); i++) {
+		std::cout << variable_types_for_input[i] << std::endl;
+		if (variable_types_for_input[i] == "double") num_doubles++;
+		else if (variable_types_for_input[i] == "nominal") num_nominals++;
+		else if (variable_types_for_input[i] == "error") num_errors++;
+		else if (variable_types_for_input[i] == "datestamp") num_datestamps++;
+	}
+
+	// Containers for input data: vectors of variable data
+	std::vector<std::vector<double>> double_input_data(num_doubles);
+	std::vector < std::vector<double>> error_input_data(num_errors);
+	std::vector < std::vector<std::string>> nominal_input_data(num_nominals);
+	std::vector < std::vector<std::string>> variable_datestamp_input_data(num_datestamps);
 	std::vector<std::string> experiment_datestamp_input_data;
 	while (inputting_data)
 	{
+		int double_count{ 0 };
+		int error_count{ 0 };
+		int nominal_count{ 0 };
+		int datestamp_count{ 0 };
 		// Input the data for each column row by row
 		for (int input_col{ 0 }; input_col < exp_for_input.get_number_of_variables(); input_col++) {
 			// Check inputs depending on variable type
@@ -230,7 +246,8 @@ int main()
 					} else {
 						// Add double to data
 						input_accepted = true;
-						double_input_data.push_back(stod(input_data_point));
+						double_input_data[double_count].push_back(stod(input_data_point));
+						double_count++;
 					}
 				} else if (variable_types_for_input[input_col] == "error") {
 					if (!is_data_point_a_number(input_data_point)) {
@@ -238,7 +255,8 @@ int main()
 					} else {
 						// Add double to data
 						input_accepted = true;
-						error_input_data.push_back(stod(input_data_point));
+						error_input_data[error_count].push_back(stod(input_data_point));
+						error_count++;
 					}
 				} else if (variable_types_for_input[input_col] == "datestamp") {
 					if (!is_data_point_a_datestamp(input_data_point)) {
@@ -250,15 +268,18 @@ int main()
 						if (variable_names_for_input[input_col] == "Datestamps") {
 							experiment_datestamp_input_data.push_back(input_data_point);
 						} 
-						variable_datestamp_input_data.push_back(input_data_point);
+						variable_datestamp_input_data[datestamp_count].push_back(input_data_point);
+						datestamp_count++;
 					}
 				} else if (variable_types_for_input[input_col] == "nominal") {
 					input_accepted = true;
-					nominal_input_data.push_back(input_data_point);
+					nominal_input_data[nominal_count].push_back(input_data_point);
+					nominal_count++;
 				}
 			}
 
 		}
+		number_of_new_rows++;
 		std::cout << "Enter another row? [y/n]" << std::endl;
 		bool accepted_choice{ false };
 		std::string row_choice;
@@ -274,36 +295,99 @@ int main()
 			}
 			else std::cerr << "ERROR: Please enter 'y' to enter a new row or 'n' to stop data input" << std::endl;
 		}
-		// Add the data to each variable
-		// Count the variable types for the extraction of variable data from input data
-		// Note that error and datestamp variables will belong to a double or nominal variable
-		std::vector<std::string> double_variable_names;
-		std::vector<std::string> nominal_variable_names;
-		for (size_t i{ 0 }; i < variable_types_for_input.size(); i++) {
-			std::string type{ variable_types_for_input[i] };
-			if (type == "double") double_variable_names.push_back(variable_names_for_input[i]);
-			else if (type == "nominal") nominal_variable_names.push_back(variable_names_for_input[i]);
-		}
-		// sort double data
-		if (double_variable_names.size() != 0) {
-			for (size_t i{ 0 }; i < double_variable_names.size(); i++) {
-				std::string variable_name{ double_variable_names[i] };
+	}
+	std::cout << "Adding data to " << exp_for_input.get_title() << "..." << std::endl;
+	// Create a temporary experiment with new variable data
+	int double_index{ 0 };
+	int nominal_index{ 0 };
+	experiment temp_experiment;
+	temp_experiment.set_title(exp_for_input.get_title());
+	for (size_t i{ 0 }; i < variable_types_for_input.size(); i++) {
+		std::string type{ variable_types_for_input[i] };
+		// Make double variables
+		if (type == "double") {
+			// Initialise variable member data
+			std::string variable_name{ variable_names_for_input[i] };
+			std::vector<double> variable_data;
+			std::vector<double> variable_error_data;
+			std::vector<std::string> variable_datestamp_data;
+			bool found_error_data{ false };
+			bool found_datestamp_data{ false };
+			// get the variable data
+			variable_data = double_input_data[double_index];
+			// look for associated variables (error or datestamp)
+			for (size_t j{ 0 }; j < variable_names_for_input.size(); j++) {
+				if (variable_names_for_input[j].find(variable_name) != std::string::npos) {
 
-				// Search for associated error or datestamp variables
-				for (size_t j{ 0 }; j < double_variable_names.size(); j++) {
-					size_t found_associated_variable{ double_variable_names[j].find(variable_name) };
-					if (found_associated_variable != std::string::npos) {
-						// Find out if the associated variable is an error or datestamp
-						if (double_variable_names[j].find("Error")) {
-
-
-
+					// work out whether associated variable is an error or datestamp
+					if (variable_names_for_input[j].find("Error") != std::string::npos) {
+						// find out location of error and get the data
+						std::vector<std::string>::iterator it = std::find(variable_names_for_input.begin(), variable_names_for_input.end(), variable_names_for_input[j]);
+						int error_index = std::distance(variable_names_for_input.begin(), it);
+						// find out how many error variables came before it
+						int count_errors_before{ 0 };
+						for (int k{ 0 }; k < error_index; k++) {
+							if (variable_names_for_input[k].find("Error") != std::string::npos) count_errors_before++;
 						}
+						variable_error_data = error_input_data[count_errors_before];
+						found_error_data = true;
+					} else if (variable_names_for_input[j].find("Datestamps") != std::string::npos) {
+						// find out location of datestamp and get the data
+						std::vector<std::string>::iterator it = std::find(variable_names_for_input.begin(), variable_names_for_input.end(), variable_names_for_input[j]);
+						int datestamp_index = std::distance(variable_names_for_input.begin(), it);
+						// find out how many datestamp variables came before it
+						int count_datestamps_before{ 0 };
+						for (int k{ 0 }; k < datestamp_index; k++) {
+							if (variable_names_for_input[k].find("Datestamps") != std::string::npos) count_datestamps_before++;
+						}
+						variable_datestamp_data = variable_datestamp_input_data[count_datestamps_before];
+						found_datestamp_data = true;
 					}
 				}
 			}
+			// If can't find error data, set errors to 0
+			if (!found_error_data) {
+				for (int k{ 0 }; k < number_of_new_rows; k++) variable_error_data.push_back(0);
+			}
+			// If can't find datestamp data, use the experiment datestamps
+			if (!found_datestamp_data) variable_datestamp_data = experiment_datestamp_input_data;
+			// Create variable and add to experiment
+			double_data temp_variable{ variable_name, variable_data, variable_error_data, variable_datestamp_data };
+			temp_experiment.add_variable(temp_variable);
+			double_index++;
+		} else if (type == "nominal") {
+			// Make nominal variables
+			// Initialise variable member data
+			std::string variable_name{ variable_names_for_input[i] };
+			std::vector<std::string> variable_data;
+			std::vector<std::string> variable_datestamp_data;
+			bool found_datestamp_data{ false };
+			// get the variable data
+			variable_data = nominal_input_data[nominal_index];
+			// look for associated variables (only datestamps)
+			for (size_t j{ 0 }; j < variable_names_for_input.size(); j++) {
+				if (variable_names_for_input[j].find(variable_name) != std::string::npos) {
+					// find out location of datestamp and get the data
+					std::vector<std::string>::iterator it = std::find(variable_names_for_input.begin(), variable_names_for_input.end(), variable_names_for_input[j]);
+					int datestamp_index = std::distance(variable_names_for_input.begin(), it);
+					// find out how many datestamp variables came before it
+					int count_datestamps_before{ 0 };
+					for (int k{ 0 }; k < datestamp_index; k++) {
+						if (variable_names_for_input[k].find("Datestamps") != std::string::npos) count_datestamps_before++;
+					}
+					variable_datestamp_data = variable_datestamp_input_data[count_datestamps_before];
+					found_datestamp_data = true;
+				}
+			}
+			// If can't find datestamp data, use the experiment datestamps
+			if (!found_datestamp_data) variable_datestamp_data = experiment_datestamp_input_data;
+			// Create variable and add to experiment
+			nominal_data temp_variable{ variable_name, variable_data, variable_datestamp_data };
+			temp_experiment.add_variable(temp_variable);
+			nominal_index++;
 		}
 	}
+	std::cout << "Temp experiment" << std::endl << temp_experiment << std::endl;
 
 	//std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
 	//nominal_data person_variable("Person", person_data);
