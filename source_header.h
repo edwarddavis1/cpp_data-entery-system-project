@@ -124,10 +124,12 @@ public:
 		if (number_of_rows == 0) number_of_rows = variable.get_length();
 		if (add_datestamps) {
 			experiment_data.emplace_back(new nominal_data("Datestamps", variable.get_datestamps(), variable.get_datestamps()));
+			variable_types.push_back("datestamp");
 			experiment_datestamps = variable.get_datestamps();
 			number_of_variables++;
 		}
 		experiment_data.emplace_back(new c_type(variable.get_variable_name(), variable.get_data(), variable.get_datestamps()));
+		variable_types.push_back(variable.get_measurement_type());
 
 		// If the error variable is non-zero add it as an error variable
 		std::vector<double> variable_error_data{ variable.get_error_data() };
@@ -138,6 +140,7 @@ public:
 		if (non_zero_error) {
 			std::cout << "Added error variable" << std::endl;
 			experiment_data.emplace_back(new double_data(variable.get_variable_name() + " Error", variable.get_error_data(), variable.get_datestamps()));
+			variable_types.push_back("error");
 			number_of_variables++;
 		}
 
@@ -150,6 +153,7 @@ public:
 		if (add_extra_date_variable) {
 			std::cout << "Added extra date variable" << std::endl;
 			experiment_data.emplace_back(new nominal_data(variable.get_variable_name() + " Datestamps", variable.get_datestamps(), variable.get_datestamps()));
+			variable_types.push_back("datestamp");
 			number_of_variables++;
 		}
 	}
