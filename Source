@@ -53,6 +53,13 @@ int main()
 
 	test_2.save_experiment();
 
+	experiment test_3;
+	test_3.set_title("Age vs Height");
+	test_3.add_variable(age_variable);
+	test_3.add_variable(height_variable);
+
+	test_3.save_experiment();
+
 
 	std::cout << "*** Welcome to the Edward Davis Data Management System ***\n" << std::endl
 		<< "Select an experiment for data entry by typing 'select' followed by the experiment ID number\n"
@@ -185,21 +192,26 @@ int main()
 				<< "  delete ID:          deletes the selected experiment - this cannot be undone!\n"
 				<< "  saved experiments:  shows a list of available experiments with their ID number\n"
 				<< "  select ID:          selects an experiment to input data\n"
-				<< "  new:                creates a new experiment to input data"
+				<< "  new:                creates a new experiment to input data\n"
+				<< "  x:                  exits the program"
 				<< std::endl;
-		} else if (input == "x") getting_input = false;
-		else {
+		} else if (input == "x") {
+			getting_input = false;
+			exit(0);
+		} else {
 			bool selection_valid{ false };
 			for (size_t i{ 0 }; i < list_of_selections.size(); i++)
 			{
 				if (input == list_of_selections[i]) selection_valid = true;
 			}
-			if (selection_valid) std::cout << "find a way of getting the object from the text file!" << std::endl;
+			if (selection_valid) std::cout << "Please use one of the quick commands with the data (type [help] to see list of commands)" << std::endl;
 			else std::cout << "I'm sorry, '" << input << "' is not a valid input" << std::endl;
 		}
 	}
 
 	// input data for selected experiment
+	std::cout << exp_for_input.get_title() << " so far..." << std::endl;
+	std::cout << exp_for_input << std::endl;
 	std::cout << "Inputting data for " << exp_for_input.get_title() << "..." << std::endl;
 	std::vector<std::string> variable_names_for_input{ exp_for_input.get_list_of_variable_names() };
 	std::vector<std::string> variable_types_for_input{ exp_for_input.get_variable_types() };
@@ -212,7 +224,6 @@ int main()
 	int num_errors{ 0 };
 	int num_datestamps{ 0 };
 	for (size_t i{ 0 }; i < variable_types_for_input.size(); i++) {
-		std::cout << variable_types_for_input[i] << std::endl;
 		if (variable_types_for_input[i] == "double") num_doubles++;
 		else if (variable_types_for_input[i] == "nominal") num_nominals++;
 		else if (variable_types_for_input[i] == "error") num_errors++;
@@ -387,7 +398,9 @@ int main()
 			nominal_index++;
 		}
 	}
-	std::cout << "Temp experiment" << std::endl << temp_experiment << std::endl;
+	std::cout << "Data input stopped." << std::endl << "Here is the data that was added:" << std::endl
+		<< temp_experiment << std::endl << "And a summary of your input: " << std::endl;
+	temp_experiment.summary();
 
 	//std::vector<std::string> person_data{ "Chris", "Ed Davis", "Carys", "Dan", "Ella", "Lesley", "Ed Neal", "Alex", "Mirin", "Chris Dooley", "Johnny" };
 	//nominal_data person_variable("Person", person_data);
