@@ -1,7 +1,7 @@
 // Header comments
 
-#ifndef FINAL_PROJECT_H
-#define FINAL_PROJECT_H
+#ifndef MEASUREMENT_CLASS_H
+#define MEASUREMENT_CLASS_H
 
 class measurement {
 public:
@@ -91,6 +91,7 @@ private:
 	std::vector<std::string> variable_types;
 public:
 	experiment() = default;
+	experiment(std::vector<std::shared_ptr<measurement>> exp_data, int exp_number_of_variables, int exp_number_of_rows, std::string exp_title, std::vector<std::string> exp_datestamps, std::vector<std::string> exp_variable_types);
 	experiment(nominal_data variable, std::string title_of_experiment);
 	experiment(double_data variable, std::string title_of_experiment);
 	// Constructor for data from saved .txt files of specific format
@@ -112,7 +113,7 @@ public:
 	void delete_experiment();
 	void update_experiment(experiment& exp);
 
-	template <class c_type> void add_variable(c_type variable, bool force_include_datestamp=false, bool force_include_error=false)
+	template <class c_type> void add_variable(c_type variable, bool force_include_datestamp = false, bool force_include_error = false)
 	{
 		// Add a variable to an existing experiment object
 		if (variable.get_length() != number_of_rows && number_of_rows != 0) {
@@ -169,11 +170,14 @@ std::string remove_trailing_spaces(std::string string_data);
 bool is_data_point_a_number(std::string data_point);
 bool is_data_point_a_datestamp(std::string data_point);
 std::vector<std::string> datestamps_from_single_date(std::string date, size_t length);
+std::vector<double> string_to_double_vector(std::vector<std::string> string_vector);
 std::ostream& operator<<(std::ostream& os, const experiment& exp);
 void print_file(std::string filename);
 bool is_trigger_used(std::string input, std::string trigger_word);
 std::string get_selected_experiment_ID(std::string input, std::string trigger);
 bool check_selection_is_valid(std::string selected_experiment_number, std::vector<std::string> list_of_selections);
 std::string choose_split(std::string string_to_split, char delimeter, int pos);
+experiment get_experiment_from_save_file(std::string experiment_filename);
+experiment get_experiment_from_csv(std::string experiment_filename);
 
 #endif
