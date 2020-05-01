@@ -14,7 +14,7 @@
 #include <cstdio>
 #include <chrono>
 #include <ctime>
-#include "final_project_header.h"
+#include "measurement_class.h"
 
 int main()
 {
@@ -87,7 +87,7 @@ int main()
 	bool program_shutting_down{ false };
 
 	std::cout << "*** Welcome to the Edward Davis Data Management System ***\n" << std::endl;
-	
+
 	while (program_running) {
 		std::cout << "List of quick commands\n"
 			<< "  print ID:           returns a table showing the data from the selected experiment\n"
@@ -268,7 +268,7 @@ int main()
 					exp_for_input = exp_csv;
 					getting_input = false;
 				}
-			}  else if (input == "x") {
+			} else if (input == "x") {
 				getting_input = false;
 				program_running = false;
 				program_shutting_down = true;
@@ -448,7 +448,7 @@ int main()
 				}
 				// Create variable and add to experiment
 				double_data temp_variable{ variable_name, variable_data, variable_error_data, variable_datestamp_data };
-				temp_experiment.add_variable(temp_variable, force_include_datestamp=force_include_datestamp, force_include_error=force_include_error);
+				temp_experiment.add_variable(temp_variable, force_include_datestamp = force_include_datestamp, force_include_error = force_include_error);
 				double_index++;
 			} else if (type == "nominal") {
 				// Make nominal variables
@@ -484,7 +484,7 @@ int main()
 				}
 				// Create variable and add to experiment
 				nominal_data temp_variable{ variable_name, variable_data, variable_datestamp_data };
-				temp_experiment.add_variable(temp_variable, force_include_datestamp=force_include_datestamp);
+				temp_experiment.add_variable(temp_variable, force_include_datestamp = force_include_datestamp);
 				nominal_index++;
 			}
 		}
