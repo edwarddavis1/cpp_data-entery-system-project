@@ -16,6 +16,7 @@
 #include <ctime>
 #include "measurement_class.h"
 #include "experiment_class.h"
+#include "function_definitions.h"
 
 int main()
 {
