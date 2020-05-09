@@ -138,7 +138,6 @@ std::vector<std::string> experiment::get_list_of_variable_names() const
 }
 std::vector<std::string> experiment::get_datestamps() const { return experiment_datestamps; }
 std::vector<std::string> experiment::get_variable_types() const { return variable_types; }
-void experiment::add_datestamp(std::string datestamp) { experiment_datestamps.push_back(datestamp); }
 void experiment::summary()
 {
 	std::vector<std::shared_ptr<measurement>> list_of_variables{ experiment_data };
