@@ -53,6 +53,17 @@ std::string remove_zero_trail(std::string string_number)
 }
 std::string remove_trailing_spaces(std::string string_data)
 {
+	// Check string is not empty
+	if (string_data.empty()) return string_data;
+	// Check string is not only spaces
+	bool only_spaces{ true };
+	for (size_t i{ 0 }; i < string_data.length(); i++) {
+		if (string_data[i] != ' ') only_spaces = false;
+	}
+	if (only_spaces) {
+		std::string empty_string;
+		return empty_string;
+	}
 	// scan backwards through string
 	std::ostringstream reversed_stringstream;
 	bool end_of_trail{ false };
@@ -69,27 +80,22 @@ bool is_data_point_a_number(std::string data_point)
 {
 	// Remove spaces in input
 	data_point.erase(remove_if(data_point.begin(), data_point.end(), isspace), data_point.end());
-
 	// Check if each char in data_point matches to a number
 	std::string list_of_numbers{ "0123456789" };
-
 	bool contains_non_digit{ false };
 	int number_of_dots{ 0 };
 	for (size_t i{ 0 }; i < data_point.length(); i++) {
-
 		// Check for number
 		bool is_current_char_a_number{ false };
 		for (size_t j{ 0 }; j < list_of_numbers.length(); j++) {
 			if (data_point[i] == list_of_numbers[j]) is_current_char_a_number = true;
 		}
 		if (!is_current_char_a_number) contains_non_digit = true;
-
 		// Check for decimal point
 		if (data_point[i] == '.') {
 			number_of_dots += 1;
 			contains_non_digit = false;
 		}
-
 		// Check for negative
 		if (i == 0 && data_point[0] == '-') contains_non_digit = false;
 
@@ -97,8 +103,6 @@ bool is_data_point_a_number(std::string data_point)
 	if (number_of_dots > 1) {
 		contains_non_digit = true;
 	}
-
-
 	return !contains_non_digit;
 }
 bool is_data_point_a_datestamp(std::string data_point)
@@ -140,6 +144,9 @@ std::vector<double> string_to_double_vector(std::vector<std::string> string_vect
 }
 std::string choose_split(std::string string_to_split, char delimeter, int position)
 {
+	if (remove_trailing_spaces(string_to_split).empty()) {
+		noexcept("ERROR: Attempted to split empty string");
+	}
 	std::stringstream stream(string_to_split);
 	std::string item;
 	std::vector<std::string> splitted_strings;
@@ -248,19 +255,6 @@ std::ostream& operator<<(std::ostream& os, const experiment& exp)
 	std::string formatted_variables{ format_variables(exp) };
 	os << formatted_variables;
 	return os;
-}
-void print_file(std::string filename)
-{
-	std::ifstream file(filename);
-
-	if (!file.good()) {
-		std::cerr << "ERROR: File '" << filename << "' could not be opened" << std::endl;
-		std::cin.get();
-		exit(1);
-	}
-	std::string line;
-	while (getline(file, line)) std::cout << line << std::endl;
-	file.close();
 }
 bool is_trigger_used(std::string input, std::string trigger_word)
 {
@@ -656,8 +650,10 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 		} else index_correction++;
 	}
 	// If a new datestamp (blank) variable was created, update variable types and variable number
-	exp_file_variable_types.insert(exp_file_variable_types.begin(), "datestamp");
-	exp_file_number_of_variables++;
+	if (add_extra_variable) {
+		exp_file_variable_types.insert(exp_file_variable_types.begin(), "datestamp");
+		exp_file_number_of_variables++;
+	}
 	experiment exp_from_file{ exp_file_data, exp_file_number_of_variables, exp_file_number_of_rows, exp_file_title, exp_file_datestamps, exp_file_variable_types };
 	return exp_from_file;
 }
