@@ -1,5 +1,8 @@
-// header comments
-
+/* 
+* General Function Definitions
+* Contains function definitions for general use.
+* Last Modified: 01/05/2020
+*/
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -16,7 +19,17 @@
 #include "function_definitions.h"
 
 const int non_number_flag{ -1 };
+const int bad_split_position{ -2 };
 
+bool is_non_zero_error(std::vector<double> variable_error_data)
+{
+	// Checks for any non-zero values in a list
+	bool non_zero_error{ false };
+	for (size_t i{ 0 }; i < variable_error_data.size(); i++) {
+		if (variable_error_data[i] != 0) non_zero_error = true;
+	}
+	return non_zero_error;
+}
 std::string remove_zero_trail(std::string string_number)
 {
 	// uses stringstream to remove zeros at the end of a string double
@@ -120,35 +133,26 @@ std::vector<double> string_to_double_vector(std::vector<std::string> string_vect
 	// Convert a string vector to a double vector
 	std::vector<double> double_vector;
 	for (size_t i{ 0 }; i < string_vector.size(); i++) {
-		try {
-			if (!is_data_point_a_number(string_vector[i])) throw non_number_flag;
-			else double_vector.push_back(stod(string_vector[i]));
-		}
-		catch (int error_flag) {
-			if (error_flag == non_number_flag)	std::cerr << "ERROR: Cannot convert string to double" << std::endl;
-			exit(error_flag);
-		}
+		if (!is_data_point_a_number(string_vector[i])) throw non_number_flag;
+		else double_vector.push_back(stod(string_vector[i]));
 	}
 	return double_vector;
 }
-std::string choose_split(std::string string_to_split, char delimeter, int pos)
+std::string choose_split(std::string string_to_split, char delimeter, int position)
 {
 	std::stringstream stream(string_to_split);
 	std::string item;
 	std::vector<std::string> splitted_strings;
-	while (getline(stream, item, delimeter))
-	{
+	while (getline(stream, item, delimeter)) {
 		splitted_strings.push_back(item);
 	}
-
-	return splitted_strings[pos];
+	if (position >= static_cast<int>(splitted_strings.size())) throw bad_split_position;
+	return splitted_strings[position];
 }
-std::ostream& operator<<(std::ostream& os, const experiment& exp)
+std::string format_variables(const experiment& exp)
 {
-	// print experiment name
-	std::cout << exp.experiment_title << std::endl;
-
-	// print out variable names as headings and get the longest length inputs for later formatting
+	std::ostringstream out_stream;
+	// get the longest length inputs for later formatting
 	size_t largest_count{ 0 };
 	for (int i{ 0 }; i < exp.number_of_variables; i++) {
 		// get the number of inputs and allow space for entry numbers
@@ -157,11 +161,9 @@ std::ostream& operator<<(std::ostream& os, const experiment& exp)
 		else if (column_data.size() > largest_count) largest_count = column_data.size();
 	}
 	size_t space_for_entry_numbers{ std::to_string(largest_count).length() + 3 };
-
 	std::vector<size_t> longest_lengths_of_inputs;
 	for (int i{ 0 }; i < exp.number_of_variables; i++) {
 		std::string variable_name{ exp.experiment_data[i]->get_variable_name() };
-
 		// get the legnth of the longest input for each column
 		std::vector<std::string> column_data{ exp.experiment_data[i]->get_string_data() };
 		size_t longest_length{ variable_name.length() };
@@ -177,63 +179,74 @@ std::ostream& operator<<(std::ostream& os, const experiment& exp)
 		longest_lengths_of_inputs.push_back(longest_length + 2);
 	}
 	// Format top lines
-	os << "+";
-	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) os << "-";
+	out_stream << "+";
+	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) out_stream << "-";
 	for (size_t i{ 0 }; i < longest_lengths_of_inputs.size(); i++) {
-		os << "+";
-		for (size_t j{ 0 }; j < longest_lengths_of_inputs[i]; j++) os << "-";
+		out_stream << "+";
+		for (size_t j{ 0 }; j < longest_lengths_of_inputs[i]; j++) out_stream << "-";
 	}
-	os << "+" << std::endl;
+	out_stream << "+" << std::endl;
 	// Variable headings
-	os << "|";
-	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) os << " ";
+	out_stream << "|";
+	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) out_stream << " ";
 	for (size_t i{ 0 }; i < longest_lengths_of_inputs.size(); i++) {
-		os << "|";
+		out_stream << "|";
 		size_t heading_length{ exp.experiment_data[i]->get_variable_name().length() };
 		size_t blank_space{ longest_lengths_of_inputs[i] - heading_length };
-		for (size_t k{ 0 }; k < blank_space / 2; k++) os << " ";
-		os << exp.experiment_data[i]->get_variable_name();
-		for (size_t k{ 0 }; k < blank_space / 2; k++) os << " ";
+		for (size_t k{ 0 }; k < blank_space / 2; k++) out_stream << " ";
+		out_stream << exp.experiment_data[i]->get_variable_name();
+		for (size_t k{ 0 }; k < blank_space / 2; k++) out_stream << " ";
 	}
-	os << "|" << std::endl;
+	out_stream << "|" << std::endl;
 	// Heading divider
-	os << "+";
-	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) os << "-";
+	out_stream << "+";
+	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) out_stream << "-";
 	for (size_t i{ 0 }; i < longest_lengths_of_inputs.size(); i++) {
-		os << "+";
-		for (size_t j{ 0 }; j < longest_lengths_of_inputs[i]; j++) os << "-";
+		out_stream << "+";
+		for (size_t j{ 0 }; j < longest_lengths_of_inputs[i]; j++) out_stream << "-";
 	}
-	os << "+" << std::endl;
+	out_stream << "+" << std::endl;
 	// print data under headings
 	for (int i{ 0 }; i < exp.experiment_data[0]->count(); i++) {
 		for (int j{ 0 }; j < exp.number_of_variables; j++) {
 			if (j == 0) {
-				os << "|";
+				out_stream << "|";
 				size_t space_for_current_number{ space_for_entry_numbers - std::to_string(i).length() - 2 };
-				os << "  " << i;
-				for (size_t k{ 0 }; k < space_for_current_number; k++) os << " ";
+				out_stream << "  " << i;
+				for (size_t k{ 0 }; k < space_for_current_number; k++) out_stream << " ";
 			}
-			os << "|";
+			out_stream << "|";
 			std::string current_value{ exp.experiment_data[j]->get_string_data()[i] };
-			os << " ";
-			os << current_value;
+			out_stream << " ";
+			out_stream << current_value;
 
 			// make sure formatting is okay between columns
 			std::string column{ exp.experiment_data[j]->get_variable_name() };
 
 			size_t space_to_fill{ longest_lengths_of_inputs[j] - current_value.length() };
-			for (size_t k{ 0 }; k < space_to_fill - 1; k++) os << " ";
+			for (size_t k{ 0 }; k < space_to_fill - 1; k++) out_stream << " ";
 		}
-		os << "|" << std::endl;
+		out_stream << "|" << std::endl;
 	}
 	// Format bottom line
-	os << "+";
-	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) os << "-";
+	out_stream << "+";
+	for (size_t i{ 0 }; i < space_for_entry_numbers; i++) out_stream << "-";
 	for (size_t i{ 0 }; i < longest_lengths_of_inputs.size(); i++) {
-		os << "+";
-		for (size_t j{ 0 }; j < longest_lengths_of_inputs[i]; j++) os << "-";
+		out_stream << "+";
+		for (size_t j{ 0 }; j < longest_lengths_of_inputs[i]; j++) out_stream << "-";
 	}
-	os << "+" << std::endl;
+	out_stream << "+" << std::endl;
+	std::string formatted_variables{ out_stream.str()};
+
+	return formatted_variables;
+}
+std::ostream& operator<<(std::ostream& os, const experiment& exp)
+{
+	// print experiment name
+	os << exp.experiment_title << std::endl;
+	// print formatted variables
+	std::string formatted_variables{ format_variables(exp) };
+	os << formatted_variables;
 	return os;
 }
 void print_file(std::string filename)
@@ -298,26 +311,28 @@ experiment get_experiment_from_save_file(std::string experiment_filename)
 	std::vector<std::string> variable_names;
 	std::vector<std::string> all_data;
 	while (getline(file, line)) {
-		if (line_number == 0) exp_file_title = line;
-		if (line[0] != '|') {
+		if (line_number == 0) {
+			exp_file_title = line;
 			line_number++;
 			continue;
-		} else {
+		} else if (line[0] == '|') {
 			bool looking_for_data{ false };
 			bool getting_data{ false };
 			std::stringstream current_data;
 			for (size_t i{ 1 }; i < line.length(); i++) {
+				// If there has been a |, then if the next character is not a space the it is data
 				if (looking_for_data) {
 					if (line[i] != ' ') {
 						getting_data = true;
 					}
 				}
+				// Read in the data between the | and spaces 
 				if (getting_data) {
 					if (line[i] != '|')	current_data << line[i];
 					else {
 						getting_data = false;
 						looking_for_data = false;
-						if (line_number == 2) {
+						if (line_number == 1) {
 							// remove trailing spaces
 							variable_names.push_back(remove_trailing_spaces(current_data.str()));
 							current_data.str("");
@@ -328,11 +343,12 @@ experiment get_experiment_from_save_file(std::string experiment_filename)
 						}
 					}
 				}
+				// Character shows that data will be after a few spaces
 				if (line[i] == '|') {
 					looking_for_data = true;
 				}
 			}
-		}
+		} else continue;
 		line_number++;
 	}
 	file.close();
@@ -461,7 +477,7 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 	std::vector<std::string> string_variable_types;  // Either string, error or datestamp
 	int line_number{ 0 };
 	for (int i{ 0 }; i < exp_file_number_of_variables; i++) {
-		// Initialise variable parameters		
+		// Initialise variable parameters and file position	
 		std::string variable_name;
 		std::vector<std::string> string_variable_data;
 		std::vector<std::string> variable_datestamps;
@@ -472,8 +488,16 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 		file.clear();
 		file.seekg(0, std::ios::beg);
 		while (getline(file, line)) {
-			// Get the date point
-			std::string data_point{ choose_split(line, ',', i) };
+			// If it exists, get the data point
+			std::string data_point;
+			try {
+				data_point = choose_split(line, ',', i);
+			} catch (int error_flag) {
+				if (error_flag == bad_split_position) {
+					std::cerr << "ERROR: File contains empty data cell or imbalanced variable lengths" << std::endl;
+					exit(error_flag);
+				}
+			}
 			if (line_number == 0) {
 				// Check if variable is an string, error or datestamp variable
 				if (data_point.find("Error") != std::string::npos) {
@@ -492,8 +516,7 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 					try {
 						if (!is_data_point_a_number(data_point)) throw non_number_flag;
 						else all_error_data[error_index].push_back(stod(data_point));
-					}
-					catch (int error_flag) {
+					} catch (int error_flag) {
 						if (error_flag == non_number_flag)	std::cerr << "ERROR: Cannot convert string to double" << std::endl;
 						exit(error_flag);
 					}
@@ -538,6 +561,7 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 		} else exp_file_variable_types.push_back(string_variable_types[i]);
 	}
 	// If there are datestamps, set as experiment datestamps
+	bool add_extra_variable{ false };  // Account for the extra new datestamp variable
 	if (datestamp_occurrences > 0) {
 		int index{ 0 };
 		for (size_t i{ 0 }; i < variable_names.size(); i++) {
@@ -546,6 +570,7 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 		exp_file_datestamps = all_datestamp_data[index];
 	} else {
 		// Otherwise set as blank dates
+		add_extra_variable = true;
 		for (int i{ 0 }; i < exp_file_number_of_rows; i++) exp_file_datestamps.push_back("00/00/0000");
 	}
 	// Add experiment dates
@@ -556,7 +581,15 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 		std::string type{ exp_file_variable_types[i] };
 		if (type == "double") {
 			// Initialise variable member data
-			std::vector<double> variable_data{ string_to_double_vector(all_string_data[i - index_correction]) };
+			std::vector<double> variable_data;
+			try {
+				variable_data = string_to_double_vector(all_string_data[i - index_correction]);
+			} catch (int error_flag) {
+				if (error_flag == non_number_flag) {
+					std::cerr << "Attempted to convert a non-numerical string to double" << std::endl;
+					exit(error_flag);
+				}
+			}
 			std::vector<double> variable_errors;
 			std::vector<std::string> variable_datestamps;
 			bool found_errors{ false };
@@ -622,6 +655,9 @@ experiment get_experiment_from_csv(std::string experiment_filename)
 			if (found_datestamps) exp_file_data.emplace_back(new nominal_data(variable_names[i], variable_datestamps, variable_datestamps));
 		} else index_correction++;
 	}
+	// If a new datestamp (blank) variable was created, update variable types and variable number
+	exp_file_variable_types.insert(exp_file_variable_types.begin(), "datestamp");
+	exp_file_number_of_variables++;
 	experiment exp_from_file{ exp_file_data, exp_file_number_of_variables, exp_file_number_of_rows, exp_file_title, exp_file_datestamps, exp_file_variable_types };
 	return exp_from_file;
 }
