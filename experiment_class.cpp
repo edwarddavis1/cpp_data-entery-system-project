@@ -1,5 +1,9 @@
-// header comments
-
+/*
+* Experiment Class
+* An experiment class contains multiple variable objects like columns in a table
+* An experiment also has associated datestamps and holds the types of variable in the data (nominal, double, error or datestamp)
+* Last modified: 01/05/2020
+*/
 #include <iostream>
 #include <string>
 #include <algorithm>
@@ -23,7 +27,7 @@ experiment::experiment(nominal_data variable, std::string title_of_experiment)
 	number_of_rows = variable.get_length();
 	number_of_variables = 2;
 	experiment_title = title_of_experiment;
-	std::cout << "         Adding data to experiment" << std::endl;
+	// Add datestamp
 	experiment_data.emplace_back(new nominal_data("Datestamps", variable.get_datestamps(), variable.get_datestamps()));
 	variable_types.push_back("datestamp");
 	experiment_datestamps = variable.get_datestamps();
@@ -36,17 +40,15 @@ experiment::experiment(double_data variable, std::string title_of_experiment)
 	number_of_rows = variable.get_length();
 	number_of_variables = 2;
 	experiment_title = title_of_experiment;
-	std::cout << "         Adding data to experiment" << std::endl;
+	// Add datestamp
 	experiment_data.emplace_back(new nominal_data("Datestamps", variable.get_datestamps(), variable.get_datestamps()));
 	variable_types.push_back("datestamp");
 	experiment_datestamps = variable.get_datestamps();
 	experiment_data.emplace_back(new double_data(variable.get_variable_name(), variable.get_data(), variable.get_datestamps()));
 	variable_types.push_back("double");
+	// Add error variable if non-zero
 	std::vector<double> variable_error_data{ variable.get_error_data() };
-	bool non_zero_error{ false };
-	for (size_t i{ 0 }; i < variable_error_data.size(); i++) {
-		if (variable_error_data[i] != 0) non_zero_error = true;
-	}
+	bool non_zero_error{ is_non_zero_error(variable_error_data) };
 	if (non_zero_error) {
 		experiment_data.emplace_back(new double_data(variable.get_variable_name() + " Error", variable.get_error_data(), variable.get_datestamps()));
 		variable_types.push_back("error");
@@ -80,14 +82,14 @@ experiment::experiment(std::string experiment_filename)
 		experiment_datestamps = exp_from_file.get_datestamps();
 		variable_types = exp_from_file.get_variable_types();
 	} else {
-		std::cerr << "ERROR: File type not supported; please use a (specified format) .txt or a .csv file" << std::endl;
+		std::cerr << "ERROR: File unavailable or not supported; please use a (specified format) .txt or a (general) .csv file" << std::endl;
+		noexcept("File could not be opened");
 	}
 }
 experiment& experiment::operator=(experiment& exp)
 {
 	// deal with self-assignment
 	if (&exp == this) return *this;
-
 	// reset this object
 	experiment_data.clear();
 	experiment_datestamps.clear();
@@ -95,7 +97,6 @@ experiment& experiment::operator=(experiment& exp)
 	number_of_rows = 0;
 	number_of_variables = 0;
 	experiment_title = "My Experiment";
-
 	// copy data over
 	number_of_rows = exp.number_of_rows;
 	number_of_variables = exp.number_of_variables;
@@ -112,7 +113,6 @@ experiment& experiment::operator=(experiment& exp)
 		experiment_data.push_back(exp.experiment_data[i]);
 		variable_types.push_back(exp.variable_types[i]);
 	}
-
 	return *this;
 }
 measurement& experiment::operator[](int index)
@@ -163,7 +163,7 @@ void experiment::summary()
 	// print variable headings
 	std::cout << "       ";  // space for longest measure name
 	int i{ 0 };
-	std::vector<std::string> measures{ "Count", "Mean", "Std", "Min", "25%", "50%", "75%", "Max" };
+	std::vector<std::string> measures{ "Count", "Mode", "Unique", "Mean", "Std", "Error", "Min", "25%", "50%", "75%", "Max" };
 	size_t width_of_summary{ 7 };
 	for (variable = first_variable; variable < last_variable; ++variable) {
 		std::string variable_name{ (*variable)->get_variable_name() };
