@@ -56,7 +56,9 @@ private:
 	std::vector<std::string> datestamps;
 public:
 	double_data() = default;
+	// Constructor for variable without errors
 	double_data(const std::string name_of_variable, const std::vector<double> variable_data, std::vector<std::string> variable_datestamps);
+	// Constructor for variable with errors
 	double_data(const std::string name_of_variable, const std::vector<double> variable_data, const std::vector<double> measurement_error, std::vector<std::string> variable_datestamps);
 	~double_data() {}
 	void print_data();
