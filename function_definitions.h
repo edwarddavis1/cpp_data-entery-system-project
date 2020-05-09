@@ -6,20 +6,30 @@
 #ifndef FUNCTION_DEFINITIONS_H
 #define FUNCTION_DEFINITIONS_H
 
+// Checks an error vector for any non zero values
 bool is_non_zero_error(std::vector<double> variable_error_data);
+// Removes zeros from the end of a string number
 std::string remove_zero_trail(std::string string_number);
 std::string remove_trailing_spaces(std::string string_data);
 bool is_data_point_a_number(std::string data_point);
 bool is_data_point_a_datestamp(std::string data_point);
 std::vector<std::string> datestamps_from_single_date(std::string date, size_t length);
+// Converts a vector string of number to a vector double
 std::vector<double> string_to_double_vector(std::vector<std::string> string_vector);
+// Format ASCII data tables from experiment object
+std::string format_variables(const experiment& exp);
 std::ostream& operator<<(std::ostream& os, const experiment& exp);
-void print_file(std::string filename);
+// Checks for a quick command trigger word in an input line
 bool is_trigger_used(std::string input, std::string trigger_word);
+// Extract an experiment file ID substring from input
 std::string get_selected_experiment_ID(std::string input, std::string trigger);
+// Check that a selected file ID is associated with an existing file
 bool check_selection_is_valid(std::string selected_experiment_number, std::vector<std::string> list_of_selections);
+// Extract a substring of a given position from a delimiter separated list
 std::string choose_split(std::string string_to_split, char delimeter, int pos);
+// Creates an experiment object from a previously saved .txt file
 experiment get_experiment_from_save_file(std::string experiment_filename);
+// Creates an experiment object from a general .csv file
 experiment get_experiment_from_csv(std::string experiment_filename);
 template <class c_type> std::vector<c_type> get_mode_averages(std::vector<c_type> data)
 {
@@ -48,6 +58,7 @@ template <class c_type> std::vector<c_type> get_mode_averages(std::vector<c_type
 	}
 	return mode_points;
 }
+// Returns a list of unique value from a vector
 template <class c_type> std::vector<c_type> get_unique(std::vector<c_type> data)
 {
 	// Get the unique values of a vector
