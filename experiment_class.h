@@ -78,6 +78,7 @@ public:
 			experiment_data.emplace_back(new double_data(variable.get_variable_name() + " Error", variable.get_error_data(), variable.get_datestamps()));
 			variable_types.push_back("error");
 			number_of_variables++;
+		}
 
 		// If a variable has different datestamps to the experiment, add those as separate variables
 		std::vector<std::string> variable_datestamps{ variable.get_datestamps() };
