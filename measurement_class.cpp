@@ -78,7 +78,18 @@ std::string nominal_data::mode_average() const {
 	else mode_avg = "none clear";
 	return mode_avg;
 }
-void nominal_data::summary() const { std::cout << "nominal data summary" << std::endl; }
+void nominal_data::summary() const 
+{ 
+	int length_of_heading{ static_cast<int>(variable_name.length()) + 14 };
+	for (int i{ 0 }; i < length_of_heading; i++) std::cout << "-";
+	std::cout << "\n   " << variable_name << " Summary   " << std::endl;
+	for (int i{ 0 }; i < length_of_heading; i++) std::cout << "-";
+	std::cout << "\nCount: " << this->count() << std::endl
+		<< "Mode: " << this->mode_average() << std::endl
+		<< "Unique: " << this->number_of_unique_values() << std::endl;
+	for (int i{ 0 }; i < length_of_heading; i++) std::cout << "-";
+	std::cout << std::endl;
+}
 std::vector<std::string> nominal_data::summary_measures()
 {
 	std::vector<std::string> list_of_summary_measures;
