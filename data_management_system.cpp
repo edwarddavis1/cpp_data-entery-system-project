@@ -182,6 +182,8 @@ int main()
 					getline(std::cin, csv_exp_title);
 					if (csv_exp_title.find("|") != std::string::npos) {
 						std::cout << "ERROR: Please do not use '|' in your title" << std::endl;
+					} else if (remove_trailing_spaces(csv_exp_title).empty()) {
+						std::cout << "ERROR: Please enter a title" << std::endl;
 					} else {
 						title_accepted = true;
 						exp_csv.set_title(csv_exp_title);
@@ -225,6 +227,8 @@ int main()
 					getline(std::cin, exp_title);
 					if (exp_title.find("|") != std::string::npos) {
 						std::cout << "ERROR: Please do not use '|' in your title" << std::endl;
+					} else if (remove_trailing_spaces(exp_title).empty()) {
+						std::cout << "ERROR: Please enter a title" << std::endl;
 					} else {
 						title_accepted = true;
 						new_exp.set_title(exp_title);
@@ -244,7 +248,9 @@ int main()
 						getline(std::cin, variable_name);
 						if (variable_name.find("|") != std::string::npos) {
 							std::cout << "ERROR: Please do not use '|' in your name" << std::endl;
-						} else if(variable_name == "x") {
+						} else if (remove_trailing_spaces(variable_name).empty()) {
+							std::cout << "ERROR: Please enter a variable name" << std::endl;
+						} else if (variable_name == "x") {
 							adding_variables = false;
 							break;
 						} else {
@@ -278,6 +284,8 @@ int main()
 							getline(std::cin, string_data_point);
 							if (string_data_point.find("|") != std::string::npos) {
 								std::cout << "ERROR: Please do not use '|' in data point" << std::endl;
+							} else if (remove_trailing_spaces(string_data_point).empty()) {
+								std::cout << "ERROR: Please enter a data point" << std::endl;
 							} else {
 								data_point_accepted = true;
 								string_new_variable_data[i].push_back(string_data_point);
@@ -327,13 +335,20 @@ int main()
 						index++;
 					}
 				}
-				// State variables with systematic errors
-				std::cout << "\nType the name of any variables with a systematic error, separated by commas" << std::endl;
+				// State variables with errors
+				std::cout << "\nType the name of any variables with predetermined errors, separated by commas\nType [skip] to skip." << std::endl;
 				bool accepted_variable_choices{ false };
-				std::vector<std::string> variables_with_systematic_errors;
+				std::vector<std::string> variables_with_predetermined_errors;
 				while (!accepted_variable_choices) {
 					std::string input_list_of_variables;
 					getline(std::cin, input_list_of_variables);
+					if (remove_trailing_spaces(input_list_of_variables).empty()) {
+						std::cout << "Please enter an input" << std::endl;
+						continue;
+					} else if (remove_trailing_spaces(input_list_of_variables) == "skip") {
+						accepted_variable_choices = true;
+						break;
+					}
 					// Count the number of selected variables
 					int number_of_choices{ 1 };
 					for (size_t i{ 0 }; i < input_list_of_variables.length(); i++) {
@@ -341,7 +356,7 @@ int main()
 					}
 					// Check, then get the selected variables
 					bool any_bad_choices{ false };
-					std::vector<std::string> temp_variables_with_systematic_errors;
+					std::vector<std::string> temp_variables_with_predetermined_errors;
 					for (int i{ 0 }; i < number_of_choices; i++) {
 						std::string choice{ choose_split(input_list_of_variables, ',', i) };
 						bool variable_okay{ false };
@@ -353,7 +368,7 @@ int main()
 							}
 						}
 
-						if (variable_okay)	temp_variables_with_systematic_errors.push_back(choice);
+						if (variable_okay)	temp_variables_with_predetermined_errors.push_back(choice);
 						else {
 							std::cout << choice << " was not one of the variable names you entered, please try again" << std::endl;
 							any_bad_choices = true;
@@ -361,30 +376,32 @@ int main()
 						}
 					}
 					if (!any_bad_choices) {
-						variables_with_systematic_errors = temp_variables_with_systematic_errors;
+						variables_with_predetermined_errors = temp_variables_with_predetermined_errors;
 						accepted_variable_choices = true;
 					}
 				}
-				// Enter systematic errors
-				std::vector<std::vector<double>> systematic_errors(variables_with_systematic_errors.size());
-				std::cout << "Enter the systematic error for each variable" << std::endl;
-				for (size_t j{ 0 }; j < string_new_variable_data[0].size(); j++) {
-					for (size_t i{ 0 }; i < variables_with_systematic_errors.size(); i++) {
-						bool error_accepted{ false };
-						while (!error_accepted) {
-							// Get the entered value
-							int variable_index{ 0 };
-							for (size_t k{ 0 }; k < new_variable_names.size(); k++) {
-								if (variables_with_systematic_errors[i] == new_variable_names[k]) variable_index = k;
+				// Enter predetermined errors
+				std::vector<std::vector<double>> predetermined_errors(variables_with_predetermined_errors.size());
+				if (variables_with_predetermined_errors.size() != 0) {
+					std::cout << "Enter the predetermined error for each variable" << std::endl;
+					for (size_t j{ 0 }; j < string_new_variable_data[0].size(); j++) {
+						for (size_t i{ 0 }; i < variables_with_predetermined_errors.size(); i++) {
+							bool error_accepted{ false };
+							while (!error_accepted) {
+								// Get the entered value
+								int variable_index{ 0 };
+								for (size_t k{ 0 }; k < new_variable_names.size(); k++) {
+									if (variables_with_predetermined_errors[i] == new_variable_names[k]) variable_index = k;
+								}
+								std::cout << variables_with_predetermined_errors[i] << "[" << j + 1 << "] (value = " << string_new_variable_data[variable_index][j] << "): ";
+								std::string error;
+								getline(std::cin, error);
+								// Check error is numerical
+								if (is_data_point_a_number(error)) {
+									predetermined_errors[i].push_back(stod(error));
+									error_accepted = true;
+								} else std::cout << "ERROR: Please enter a number" << std::endl;
 							}
-							std::cout << variables_with_systematic_errors[i] << "[" << j+1 << "] (value = " << string_new_variable_data[variable_index][j] << "): ";
-							std::string error;
-							getline(std::cin, error);
-							// Check error is numerical
-							if (is_data_point_a_number(error)) {
-								systematic_errors[i].push_back(stod(error));
-								error_accepted = true;
-							} else std::cout << "ERROR: Please enter a number" << std::endl;
 						}
 					}
 				}
@@ -396,10 +413,10 @@ int main()
 						// Check if it has errors
 						std::vector<double> variable_errors;
 						bool has_errors{ false };
-						for (size_t j{ 0 }; j < variables_with_systematic_errors.size(); j++) {
-							if (new_variable_names[i] == variables_with_systematic_errors[j]) {
+						for (size_t j{ 0 }; j < variables_with_predetermined_errors.size(); j++) {
+							if (new_variable_names[i] == variables_with_predetermined_errors[j]) {
 								has_errors = true;
-								variable_errors = systematic_errors[j];
+								variable_errors = predetermined_errors[j];
 							}
 						}
 						// If it has no errors, set all to zero
@@ -410,11 +427,27 @@ int main()
 						}
 						// Create variable and add to experiment
 						double_data temp_variable{ new_variable_names[i], double_new_variable_data[double_index], variable_errors, datestamps_from_single_date(datestamp, double_new_variable_data[double_index].size())};
-						new_exp.add_variable(temp_variable);
+						try {
+							new_exp.add_variable(temp_variable);
+						} catch (int error_flag) {
+							if (error_flag == bad_variable_size_flag) {
+								std::cerr << temp_variable.get_variable_name() << " is not the same length as variables in " << new_exp.get_title() << std::endl;
+								exit(error_flag);
+							}
+						}
 						double_index++;
 					} else if (type == "nominal") {
 						// Create variable and add to experiment
 						nominal_data temp_variable{new_variable_names[i], string_new_variable_data[i], datestamps_from_single_date(datestamp, string_new_variable_data[i].size()) };
+						try {
+							new_exp.add_variable(temp_variable);
+						}
+						catch (int error_flag) {
+							if (error_flag == bad_variable_size_flag) {
+								std::cerr << temp_variable.get_variable_name() << " is not the same length as variables in " << new_exp.get_title() << std::endl;
+								exit(error_flag);
+							}
+						}
 					}
 				}
 
@@ -422,6 +455,7 @@ int main()
 				std::cout << "\nHere is your experiment\n" << std::endl;
 				std::cout << new_exp << std::endl;
 				new_exp.summary();
+				new_exp.save_experiment();
 
 				// Add to container
 				edited_experiments.push_back(new_exp);
@@ -606,7 +640,14 @@ int main()
 				}
 				// Create variable and add to experiment
 				double_data temp_variable{ variable_name, variable_data, variable_error_data, variable_datestamp_data };
-				temp_experiment.add_variable(temp_variable, force_include_datestamp = force_include_datestamp, force_include_error = force_include_error);
+				try {
+					temp_experiment.add_variable(temp_variable, force_include_datestamp = force_include_datestamp, force_include_error = force_include_error);
+				} catch (int error_flag) {
+					if (error_flag == bad_variable_size_flag) {
+						std::cerr << temp_variable.get_variable_name() << " is not the same length as variables in " << temp_experiment.get_title() << std::endl;
+						exit(error_flag);
+					}
+				}
 				double_index++;
 			} else if (type == "nominal") {
 				// Make nominal variables
@@ -642,23 +683,49 @@ int main()
 				}
 				// Create variable and add to experiment
 				nominal_data temp_variable{ variable_name, variable_data, variable_datestamp_data };
-				temp_experiment.add_variable(temp_variable, force_include_datestamp = force_include_datestamp);
+				try {
+					temp_experiment.add_variable(temp_variable, force_include_datestamp = force_include_datestamp);
+				} catch (int error_flag) {
+					if (error_flag == bad_variable_size_flag) {
+						std::cerr << temp_variable.get_variable_name() << " is not the same length as variables in " << temp_experiment.get_title() << std::endl;
+						exit(error_flag);
+					}
+				}
 				nominal_index++;
 			}
 		}
 		// Summarise the input data
 		std::cout << "Data input stopped." << std::endl << "Here is the data that was added:" << std::endl
-			<< temp_experiment << std::endl << "And a summary of your input: " << std::endl;
+			<< temp_experiment << std::endl;
+		std::cout << "Previous Experiment Summary:" << std::endl;
+		exp_for_input.summary();
+		std::cout << "Input Summary:" << std::endl;
 		temp_experiment.summary();
 
 		// Add inputs to select experiment
-		std::cout << "Adding new input to " << exp_for_input.get_title() << std::endl;
-		exp_for_input.update_experiment(temp_experiment);
-		std::cout << exp_for_input << std::endl;
-
-		// Add experiment to container
-		edited_experiments.push_back(exp_for_input);
-
+		bool add_new_data_choice_accepted{ false };
+		bool add_new_data;
+		std::cout << "\n\nWould you like to add this new data? [y/n]" << std::endl;
+		while (!add_new_data_choice_accepted) {
+			std::string add_new_data_choice;
+			getline(std::cin, add_new_data_choice);
+			if (add_new_data_choice == "y") {
+				add_new_data_choice_accepted = true;
+				add_new_data = true;
+			} else if (add_new_data_choice == "n") {
+				add_new_data_choice_accepted = true;
+				add_new_data = false;
+			} else std::cerr << "ERROR: Please enter 'y' to add the new data or 'n' to abort" << std::endl;
+		}
+		if (add_new_data) {
+			std::cout << "Adding new input to " << exp_for_input.get_title() << std::endl;
+			exp_for_input.update_experiment(temp_experiment);
+			std::cout << exp_for_input << std::endl;
+			// Add experiment to container
+			edited_experiments.push_back(exp_for_input);
+		} else {
+			std::cout << "New input aborted" << std::endl;
+		}
 	}
 
 	// Save all experiments in container
