@@ -109,9 +109,9 @@ std::vector<std::string> nominal_data::summary_measures()
 std::string nominal_data::get_measurement_type() const { return "nominal"; }
 std::string nominal_data::get_variable_name() { return variable_name; }
 int nominal_data::count() const { return static_cast<int>(data.size()); }
-
 std::vector<std::string> nominal_data::get_string_data() const { return data; }
 std::vector<std::string> nominal_data::get_data() const { return data; }
+double nominal_data::standard_error() const { return 0; }
 
 double_data::double_data(const std::string name_of_variable, const std::vector<double> variable_data, std::vector<std::string> variable_datestamps)
 {
