@@ -223,6 +223,30 @@ void experiment::save_experiment() const
 	new_saved_experiments.close();
 	std::cout << "saved experiment: " << experiment_title << " as " << experiment_title << ".txt" << std::endl;
 }
+void experiment::save_to_csv() const
+{
+	// save file
+	std::ofstream outfile(experiment_title + ".csv");
+	outfile << this->get_title() << std::endl;
+	// enter the variable names as headings
+	for (size_t i{ 0 }; i < experiment_data.size() - 1; i++) {
+		outfile << experiment_data[i]->get_variable_name() << ",";
+	}
+	// last variable name
+	outfile << experiment_data[experiment_data.size() - 1]->get_variable_name() << std::endl;
+	// enter the data
+	for (int j{ 0 }; j < number_of_rows; j++) {
+		for (size_t i{ 0 }; i < experiment_data.size() - 1; i++) {
+			std::string data_point{ experiment_data[i]->get_string_data()[j] };
+			outfile << data_point << ",";
+		}
+		// last data point of each row
+		std::string last_point_of_row{ experiment_data[experiment_data.size() - 1]->get_string_data()[j] };
+		outfile << last_point_of_row << std::endl;
+	}
+	outfile.close();
+	std::cout << "saved experiment: " << experiment_title << " as " << experiment_title << ".csv" << std::endl;
+}
 void experiment::delete_experiment()
 {
 	// delete file
