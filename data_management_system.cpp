@@ -38,6 +38,7 @@ int main()
 			<< "  delete ID:          deletes the selected experiment - this cannot be undone!\n"
 			<< "  saved experiments:  shows a list of available experiments with their ID number\n"
 			<< "  select ID:          selects an experiment to input data\n"
+			<< "  to csv ID:          outputs the experiment as a .csv file\n"
 			<< "  show edits:         displays experiments that have recently been edited\n"
 			<< "  new:                creates a new experiment to input data\n"
 			<< "  [filename.csv]      creates a new experiment from a csv file\n"
@@ -153,6 +154,17 @@ int main()
 					getting_input = false;
 
 				} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
+			}  else if (is_trigger_used(input, "to csv")) {
+				// Select an experiment based on ID to output as a .csv file
+				std::string selected_experiment_number{ get_selected_experiment_ID(input, "to csv") };
+				bool selection_valid{ check_selection_is_valid(selected_experiment_number, list_of_selections) };
+				if (selection_valid) {
+					int selected_experiment_number_int{ stoi(selected_experiment_number) };
+					int selected_experiment_index{ selected_experiment_number_int - 1 };
+
+					experiment selected_experiment(list_of_available_experiments[selected_experiment_index] + ".txt");
+					selected_experiment.save_to_csv();
+				} else std::cout << "I'm sorry, '" << selected_experiment_number << "' is not a valid selection" << std::endl;
 			} else if (input == "show edits") {
 				if (edited_experiments.size() == 0) std::cout << "No recently edited experiments" << std::endl;
 				// Output all experiments in the edited_experiments vector using a lambda function
@@ -167,6 +179,7 @@ int main()
 					<< "  delete ID:          deletes the selected experiment - this cannot be undone!\n"
 					<< "  saved experiments:  shows a list of available experiments with their ID number\n"
 					<< "  select ID:          selects an experiment to input data\n"
+					<< "  to csv ID:          outputs the experiment as a .csv file\n"
 					<< "  show edits:         displays experiments that have recently been edited\n"
 					<< "  [filename.csv]      creates a new experiment from a csv file\n"
 					<< "  new:                creates a new experiment to input data\n"
