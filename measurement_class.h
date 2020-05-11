@@ -22,6 +22,7 @@ public:
 	virtual std::vector<double> get_error_data() const = 0;
 	virtual std::string mode_average() const = 0;						  
 	virtual int number_of_unique_values() const = 0;
+	virtual double standard_error() const = 0;
 };
 class nominal_data : public measurement {
 private:
@@ -47,6 +48,7 @@ public:
 	std::string mode_average() const;
 	std::vector<std::string> get_string_data() const;
 	std::vector<std::string> get_data() const;
+	double standard_error() const;
 };
 class double_data : public measurement {
 private:
