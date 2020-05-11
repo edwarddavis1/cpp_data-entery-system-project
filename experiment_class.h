@@ -44,7 +44,7 @@ public:
 	void delete_experiment();
 	// Used to add data to an existing experiment
 	void update_experiment(experiment& exp);
-	template <class c_type> void add_variable(c_type variable, bool force_include_datestamp = false, bool force_include_error = false)
+	template <class c_type> void add_variable(c_type variable, bool force_include_datestamp = false, bool force_include_error = false, bool add_standard_error = false)
 	{
 		// Add a variable to an existing experiment object
 		if (variable.get_length() != number_of_rows && number_of_rows != 0) {
@@ -76,6 +76,16 @@ public:
 		}
 		if (non_zero_error || force_include_error) {
 			experiment_data.emplace_back(new double_data(variable.get_variable_name() + " Error", variable.get_error_data(), variable.get_datestamps()));
+			variable_types.push_back("error");
+			number_of_variables++;
+		} else if (variable.get_measurement_type() == "double" && add_standard_error) {
+			// If error not given and the variable is numerical, then use standard error
+			std::vector<double> standard_error_data;
+			double standard_error{ variable.standard_error() };
+			for (size_t i{ 0 }; i < variable_error_data.size(); i++) {
+				standard_error_data.push_back(standard_error);
+			}
+			experiment_data.emplace_back(new double_data(variable.get_variable_name() + " Error", standard_error_data, variable.get_datestamps()));
 			variable_types.push_back("error");
 			number_of_variables++;
 		}
