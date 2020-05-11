@@ -405,6 +405,23 @@ int main()
 						}
 					}
 				}
+				// Give user the option to use automatic errors for the non-predetermined errors
+				bool use_auto_errors{ false };
+				if (static_cast<int>(variables_with_predetermined_errors.size()) != number_of_double_variables) {
+					std::cout << "\nWould you like to use automatic errors for the variables without predetermined errors? [y/n]" << std::endl;
+					bool accepted_choice{ false };
+					std::string auto_error_choice;
+					while (!accepted_choice) {
+						getline(std::cin, auto_error_choice);
+						if (auto_error_choice == "y") {
+							accepted_choice = true;
+							use_auto_errors = true;
+						} else if (auto_error_choice == "n") {
+							accepted_choice = true;
+							use_auto_errors = false;
+						} else std::cerr << "ERROR: Please enter 'y' to use automatic errors or 'n' to include no error variables without predetermined errors" << std::endl;
+					}
+				}
 				// Create variable objects and add to experiment
 				int double_index{ 0 };
 				for (size_t i{ 0 }; i < variable_data_types.size(); i++) {
@@ -428,7 +445,7 @@ int main()
 						// Create variable and add to experiment
 						double_data temp_variable{ new_variable_names[i], double_new_variable_data[double_index], variable_errors, datestamps_from_single_date(datestamp, double_new_variable_data[double_index].size())};
 						try {
-							new_exp.add_variable(temp_variable);
+							new_exp.add_variable(temp_variable, false, false, use_auto_errors);
 						} catch (int error_flag) {
 							if (error_flag == bad_variable_size_flag) {
 								std::cerr << temp_variable.get_variable_name() << " is not the same length as variables in " << new_exp.get_title() << std::endl;
