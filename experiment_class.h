@@ -41,6 +41,7 @@ public:
 	std::vector<std::string> get_variable_types() const;
 	void summary();
 	void save_experiment() const;
+	void save_to_csv() const;
 	void delete_experiment();
 	// Used to add data to an existing experiment
 	void update_experiment(experiment& exp);
